@@ -1,0 +1,65 @@
+body {
+    font-family: Arial, sans-serif;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+form {
+    margin-bottom: 20px;
+}
+
+ul {
+    list-style: none;
+    padding: 0;
+}
+
+li {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+/* Основные стили таблицы */
+.parameters-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-family: Arial, sans-serif;
+    box-shadow: 0 2px 3px rgba(0,0,0,0.1);
+}
+
+/* Стили заголовков */
+.parameters-table th {
+    background-color: #4CAF50;
+    color: white;
+    text-align: left;
+    padding: 12px;
+    border: 1px solid #ddd;
+}
+
+/* Стили ячеек */
+.parameters-table td {
+    padding: 12px;
+    border: 1px solid #ddd;
+}
+
+/* Чередование цветов строк */
+.parameters-table tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+.parameters-table tr:hover {
+    background-color: #e6f7ff;
+}
+
+/* Стили для кнопок действий */
+.action-links a {
+    margin: 0 5px;
+    text-decoration: none;
+    color: #333;
+    font-size: 1.2em;
+}
+
+.action-links a:hover {
+    color: #4CAF50;
+}

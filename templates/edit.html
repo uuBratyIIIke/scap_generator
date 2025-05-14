@@ -1,0 +1,6 @@
+<form action="/edit/{{ parameter.id }}" method="POST">
+    <input type="text" name="name" value="{{ parameter.name }}">
+    <input type="text" name="value" value="{{ parameter.value }}">
+    <input type="text" name="description" value="{{ parameter.description }}">
+    <button type="submit">Update</button>
+</form>
