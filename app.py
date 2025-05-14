@@ -17,6 +17,7 @@ class Parameter(db.Model):
         return f'<Parameter {self.name}>'  # Исправлено: используем self.name
 
 # Создаем таблицы в контексте приложения
+#for commit
 with app.app_context():
     db.create_all()
     
