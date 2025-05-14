@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
+from flask import make_response
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
@@ -29,17 +30,19 @@ def index():
 @app.route('/add', methods=['GET', 'POST'])
 def add_parameter():
     if request.method == 'POST':
-        new_param = Parameter(
-            name=request.form['name'],
-            value=request.form['value'],
-            description=request.form.get('description', '')  # .get() для необязательного поля
-        )
         try:
+            new_param = Parameter(
+                name=request.form['name'],
+                value=request.form['value'],
+                description=request.form.get('description', '')  # description необязателен
+            )
+            db.session.add(new_param)
             db.session.commit()
             return redirect(url_for('index'))
-        except IntegrityError:
+        except Exception as e:
             db.session.rollback()
-            return "Ошибка: параметр с таким именем уже существует", 400
+            return f"Ошибка при добавлении: {str(e)}", 400
+    
     return render_template('add.html')
 
 @app.route('/delete/<int:id>')
@@ -59,6 +62,28 @@ def edit_parameter(id):
         db.session.commit()
         return redirect(url_for('index'))
     return render_template('edit.html', parameter=parameter)
+
+@app.route('/export')
+def export_to_file():
+    # Получаем все параметры из базы
+    parameters = Parameter.query.all()
+    
+    # Формируем содержимое файла
+    file_content = ""
+    for param in parameters:
+        file_content += f"""
+<ind:textfilecontent54_object id=\"oval:ssl:obj:{param.id}\" version=\"1\">
+  <ind:filepath>/mnt/d/Studying/Pg_conf_file/pg_conf_file_04/postgresql.conf</ind:filepath>
+  <ind:pattern operation=\"pattern match\">{param.name}=\s*'{param.value}'?</ind:pattern>
+  <ind:instance datatype=\"int\" operation=\"greater than or equal\">1</ind:instance>
+</ind:textfilecontent54_object>\n\n"""
+
+    # Создаем ответ с файлом
+    response = make_response(file_content)
+    response.headers['Content-Disposition'] = 'attachment; filename=parameters_export.txt'
+    response.headers['Content-type'] = 'text/plain'
+    
+    return response
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
