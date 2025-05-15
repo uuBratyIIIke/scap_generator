@@ -2,5 +2,18 @@
     <input type="text" name="name" value="{{ parameter.name }}">
     <input type="text" name="value" value="{{ parameter.value }}">
     <input type="text" name="description" value="{{ parameter.description }}">
+    <div class="form-group">
+    <label for="group_id">Group ID:</label>
+    <select name="group_id" id="group_id">
+        <option value="">— Без группы —</option>
+        {% for group in groups %}
+        <option value="{{ group.id }}" 
+                {% if parameter.group_id == group.id %}selected{% endif %}>
+            {{ group.id }} - {{ group.name }}
+        </option>
+        {% endfor %}
+    </select>
+</div>
     <button type="submit">Update</button>
 </form>
+

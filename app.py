@@ -17,20 +17,31 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 db = SQLAlchemy(app)
 
+class Group(db.Model):
+    __tablename__ = 'groups'  # Явно указываем имя таблицы
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    
+    def __repr__(self):
+        return f'<Group {self.name}>'
+
 class Parameter(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.Text, unique=True, nullable=False)
-    value = db.Column(db.Text, unique=False, nullable=False)
-    description = db.Column(db.Text, unique=False, nullable=True)  # Исправлено: db.Column
+    value = db.Column(db.Text, nullable=False)
+    description = db.Column(db.Text)
+    group_id = db.Column(db.Integer, db.ForeignKey('groups.id'))  # Внешний ключ    
+
+    group = db.relationship('Group', backref='parameters')  # Связь для ORM
     
     def __repr__(self):
-        return f'<Parameter {self.name}>'   # Исправлено: используем self.name
-
+        return f'<Parameter {self.name}>'
+    
 # Создаем таблицы в контексте приложения
 #for commit
 with app.app_context():
-    db.create_all()
-    
+    db.create_all()  # Создаём заново с новыми структурами    
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -39,7 +50,7 @@ def allowed_file(filename):
 
 @app.route('/')
 def index():
-    parameters = Parameter.query.all()  # Исправлено: Parameter вместо parameters
+    parameters = Parameter.query.options(db.joinedload(Parameter.group)).all()
     return render_template('index.html', parameters=parameters)
 
 @app.route('/add', methods=['GET', 'POST'])
@@ -100,13 +111,15 @@ def delete_parameter(id):
 @app.route('/edit/<int:id>', methods=['GET', 'POST'])
 def edit_parameter(id):
     parameter = Parameter.query.get_or_404(id)
+    groups = Group.query.all()
     if request.method == 'POST':
         parameter.name = request.form['name']
         parameter.value = request.form['value']
         parameter.description = request.form['description']
+        parameter.group_id = request.form.get('group_id') or None
         db.session.commit()
         return redirect(url_for('index'))
-    return render_template('edit.html', parameter=parameter)
+    return render_template('edit.html', parameter=parameter, groups=groups)
 
 @app.route('/export')
 def export_to_file():
@@ -173,5 +186,90 @@ def export_to_file():
     
     return response
 
+
+@app.route('/groups')
+def groups():
+    all_groups = Group.query.all()
+    return render_template('groups.html', groups=all_groups)
+
+@app.route('/add_group', methods=['GET', 'POST'])
+def add_group():
+    if request.method == 'POST':
+        group_name = request.form['name']
+        new_group = Group(name=group_name)
+        db.session.add(new_group)
+        db.session.commit()
+        return redirect(url_for('groups'))
+    return render_template('add_group.html')
+
+@app.route('/delete_group/<int:id>')
+def delete_group(id):
+    group_to_delete = Group.query.get_or_404(id)
+    # Удаляем или обнуляем связанные параметры
+    Parameter.query.filter_by(group_id=id).update({'group_id': None})
+    db.session.delete(group_to_delete)
+    db.session.commit()
+    return redirect(url_for('groups'))
+
+@app.route('/export_xccdf')
+def export_to_xccdf_file():
+    # Получаем все параметры с именами групп
+    parameters = db.session.query(
+        Parameter,
+        Group.name.label('group_name')
+    ).outerjoin(
+        Group, Parameter.group_id == Group.id
+    ).all()
+
+    # Формируем содержимое файла
+    file_content = "ID|Name|Value|Group|Description\n"  # Заголовки
+    for param, group_name in parameters:
+        file_content += f"{param.id}|{param.name}|{param.value}|{group_name or 'No group'}|{param.description or ''}\n"
+    
+    # Создаем ответ с файлом
+    response = make_response(file_content)
+    response.headers['Content-Disposition'] = 'attachment; filename=parameters_export.xccdf'
+    response.headers['Content-type'] = 'text/plain'
+    
+    return response
+    
+    parameters = Parameter.query.options(db.joinedload(Parameter.group)).all()
+    file_content = ""
+
+    for param in parameters:
+        if(not param.group.name):
+            continue 
+        file_content += f"""
+<Group id="xccdf_org.postgresql_group_{param.id}">
+"""
+
+    '''
+    <Group id="xccdf_org.postgresql_group_{param.group.name}">
+        <title>SSL Configuration Group</title>
+        <description>Проверки SSL-параметров</description>
+
+        <!-- Правила -->
+        <Rule id="xccdf_org.postgresql_rule_ssl_enabled" severity="high">
+            <title>SSL должен быть включён</title>
+            <check system="http://oval.mitre.org/XMLSchema/oval-definitions-5">
+                <check-content-ref href="check_postgresql_ssl.xml" name="oval:ssl:def:1"/>
+            </check>
+        </Rule>
+		
+		 <Rule id="xccdf_org.postgresql_rule_ssl_prefer_server_ciphers" severity="high">
+            <title>Использовать серверные шифры по умолчанию</title>
+            <check system="http://oval.mitre.org/XMLSchema/oval-definitions-5">
+                <check-content-ref href="check_postgresql_ssl.xml" name="oval:ssl:def:2"/>
+            </check>
+        </Rule>
+		
+		<Rule id="xccdf_org.postgresql_rule_ssl_min_protocol_version" severity="high">
+            <title>Минимальная версия TLS - 1.2</title>
+            <check system="http://oval.mitre.org/XMLSchema/oval-definitions-5">
+                <check-content-ref href="check_postgresql_ssl.xml" name="oval:ssl:def:3"/>
+            </check>
+        </Rule>
+    </Group>
+    '''
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

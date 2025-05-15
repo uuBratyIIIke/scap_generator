@@ -7,14 +7,15 @@
 <body>
     <h1>Управление параметрами</h1>
     <a href="{{ url_for('add_parameter') }}" class="add-button">+ Добавить параметр</a>
-    
+   
     <table class="parameters-table">
         <thead>
             <tr>
                 <th>ID</th>
-                <th>Название</th>
-                <th>Значение</th>
-                <th>Описание</th>
+                <th>name</th>
+                <th>value</th>
+                <th>description</th>
+                <th>group_name</th>
                 <th>Действия</th>
             </tr>
         </thead>
@@ -25,6 +26,13 @@
                 <td>{{ param.name }}</td>
                 <td>{{ param.value }}</td>
                 <td>{{ param.description or '' }}</td>
+                <td>
+                {% if param.group.name %}
+                    {{ param.group.name }}
+                {% else %}
+                    —
+                {% endif %}
+            </td>
                 <td class="action-links">
                     <a href="{{ url_for('edit_parameter', id=param.id) }}" title="Редактировать">✏️</a>
                     <a href="{{ url_for('delete_parameter', id=param.id) }}" title="Удалить" 
