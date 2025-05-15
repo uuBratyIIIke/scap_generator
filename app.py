@@ -24,7 +24,7 @@ class Parameter(db.Model):
     description = db.Column(db.Text, unique=False, nullable=True)  # Исправлено: db.Column
     
     def __repr__(self):
-        return f'<Parameter {self.name}>'  # Исправлено: используем self.name
+        return f'<Parameter {self.name}>'   # Исправлено: используем self.name
 
 # Создаем таблицы в контексте приложения
 #for commit
