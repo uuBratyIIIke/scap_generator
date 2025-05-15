@@ -1,6 +1,35 @@
-<form method="POST">
-    <input type="text" name="name" placeholder="Название" required>
-    <input type="text" name="value" placeholder="Значение" required>
-    <textarea name="description" placeholder="Описание"></textarea>
-    <button type="submit">Добавить</button>
-</form>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Добавить параметры</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Добавить параметры</h1>
+    
+    <div class="add-forms">
+        <!-- Форма для ручного добавления -->
+        <div class="form-section">
+            <h2>Добавить вручную</h2>
+            <form method="POST" enctype="multipart/form-data">
+                <input type="text" name="name" placeholder="Название" required>
+                <input type="text" name="value" placeholder="Значение" required>
+                <textarea name="description" placeholder="Описание"></textarea>
+                <button type="submit">Добавить параметр</button>
+            </form>
+        </div>
+        
+        <!-- Форма для загрузки CSV -->
+        <div class="form-section">
+            <h2>Импорт из CSV</h2>
+            <form method="POST" enctype="multipart/form-data">
+                <input type="file" name="csv_file" accept=".csv" required>
+                <p class="hint">Формат CSV: name,value,description (разделитель - запятая)</p>
+                <button type="submit">Импортировать</button>
+            </form>
+        </div>
+    </div>
+    
+    <a href="{{ url_for('index') }}" class="back-link">← Назад к списку</a>
+</body>
+</html>

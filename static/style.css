@@ -77,3 +77,65 @@ li {
 .export-button:hover {
     background-color: #0b7dda;
 }
+
+
+.add-forms {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+.form-section {
+    flex: 1;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+}
+
+.form-section h2 {
+    margin-top: 0;
+    color: #333;
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+input, textarea {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+button[type="submit"] {
+    padding: 10px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button[type="submit"]:hover {
+    background-color: #45a049;
+}
+
+.hint {
+    font-size: 0.9em;
+    color: #666;
+    margin: 5px 0;
+}
+
+.back-link {
+    display: inline-block;
+    margin-top: 20px;
+    color: #2196F3;
+    text-decoration: none;
+}
+
+.back-link:hover {
+    text-decoration: underline;
+}
