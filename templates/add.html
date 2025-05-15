@@ -16,6 +16,14 @@
                 <input type="text" name="value" placeholder="Значение" required>
                 <textarea name="description" placeholder="Описание"></textarea>
                 <button type="submit">Добавить параметр</button>
+                <select name="group_id">
+                    <option value="">-- Без группы --</option>
+                    {% for group in groups %}
+                    <option value="{{ group.id }}" {% if group.id == param.group_id %}selected{% endif %}>
+                        {{ group.name }}
+                    </option>
+                    {% endfor %}
+                </select>
             </form>
         </div>
         

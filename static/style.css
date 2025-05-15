@@ -139,3 +139,10 @@ button[type="submit"]:hover {
 .back-link:hover {
     text-decoration: underline;
 }
+
+select {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: white;
+}

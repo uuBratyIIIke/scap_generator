@@ -21,10 +21,16 @@ class Parameter(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.Text, unique=True, nullable=False)
     value = db.Column(db.Text, unique=False, nullable=False)
-    description = db.Column(db.Text, unique=False, nullable=True)  # Исправлено: db.Column
-    
+    description = db.Column(db.Text, unique=False, nullable=True)
+    group_id = db.Column(db.Integer, db.ForeignKey('groups.id'))
+    group = db.relationship('Group', backref='parameters')
+
     def __repr__(self):
-        return f'<Parameter {self.name}>'  # Исправлено: используем self.name
+        return f'<Parameter {self.name}>'
+    
+class Group(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.Text, unique=True, nullable=False)
 
 # Создаем таблицы в контексте приложения
 #for commit
@@ -39,19 +45,30 @@ def allowed_file(filename):
 
 @app.route('/')
 def index():
-    parameters = Parameter.query.all()  # Исправлено: Parameter вместо parameters
+    parameters = db.session.query(
+        Parameter,
+        Group.name.label('group_name')
+    ).outerjoin(
+        Group, Parameter.group_id == Group.id
+    ).all()
+    
     return render_template('index.html', parameters=parameters)
 
 @app.route('/add', methods=['GET', 'POST'])
 def add_parameter():
     if request.method == 'POST':
+        
+        groups = Group.query.all()  # Получаем список групп
+
         # Обработка обычной формы
         if 'name' in request.form:
             try:
+                group_id = request.form.get('group_id') or None
                 new_param = Parameter(
                     name=request.form['name'],
                     value=request.form['value'],
-                    description=request.form.get('description', '')
+                    description=request.form.get('description', ''),
+                    group_id=group_id
                 )
                 db.session.add(new_param)
                 db.session.commit()
@@ -88,7 +105,7 @@ def add_parameter():
                     if os.path.exists(filepath):
                         os.remove(filepath)
     
-    return render_template('add.html')
+    return render_template('add.html', groups=groups)
 
 @app.route('/delete/<int:id>')
 def delete_parameter(id):
