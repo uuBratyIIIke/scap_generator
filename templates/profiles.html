@@ -1,15 +1,104 @@
-{% extends "base.html" %}
-
-{% block title %}Название страницы{% endblock %}
-
-{% block content %}
-
+<!-- templates/profiles.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Профили</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
 <body>
-    <h1>Профили проверок</h1>
-    
-    <a href="{{ url_for('add_profile') }}" class="export-button">+ Добавить профиль</a>
-    
-    
-</body>
+    <h1>Профили</h1>
+    <a href="{{ url_for('index') }}" class="back-link">← На главную</a>
 
-{% endblock %}
+    <!-- Форма добавления профиля -->
+    <div class="form-section" style="max-width: 600px; margin: 30px 0;">
+        <h2>Добавить профиль</h2>
+        <form method="post" action="{{ url_for('profiles') }}">
+            <div class="form-group">
+                <label for="name">Название профиля *</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+            <div class="form-group">
+                <label for="description">Описание</label>
+                <textarea id="description" name="description"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="is_selected">Активен</label>
+                <input type="checkbox" id="is_selected" name="is_selected">
+            </div>
+            <div class="form-group">
+                <label for="group_id">Группа</label>
+                <select id="group_id" name="group_id">
+                    <option value="">-- Выберите группу --</option>
+                    {% for group in groups %}
+                        <option value="{{ group.id }}">{{ group.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="rule_id">Правило</label>
+                <select id="rule_id" name="rule_id">
+                    <option value="">-- Выберите правило --</option>
+                    {% for param in parameters %}
+                        <option value="{{ param.id }}">{{ param.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="severity">Уровень критичности *</label>
+                <select id="severity" name="severity" required>
+                    <option value="low">Низкий</option>
+                    <option value="medium">Средний</option>
+                    <option value="high">Высокий</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="title">Заголовок</label>
+                <input type="text" id="title" name="title">
+            </div>
+            <div class="form-group">
+                <label for="content_href">Ссылка на контент</label>
+                <input type="url" id="content_href" name="content_href">
+            </div>
+            <button type="submit" class="submit-btn">Добавить</button>
+        </form>
+    </div>
+
+    <!-- Таблица профилей -->
+    <table class="parameters-table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Название</th>
+                <th>Описание</th>
+                <th>Активен</th>
+                <th>Группа</th>
+                <th>Правило</th>
+                <th>Критичность</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for profile in profiles %}
+            <tr>
+                <td>{{ profile.id }}</td>
+                <td>{{ profile.name }}</td>
+                <td>{{ profile.description or '' }}</td>
+                <td>{{ '✅' if profile.is_selected else '❌' }}</td>
+                <td>{{ profile.group.name if profile.group else '' }}</td>
+                <td>{{ profile.rule.name if profile.rule else '' }}</td>
+                <td>{{ profile.severity }}</td>
+                <td class="action-links">
+                    <a href="#">✏️</a>
+                    <a href="#">🗑️</a>
+                </td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="8" style="text-align:center; color:#888;">Профилей пока нет</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

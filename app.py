@@ -22,7 +22,7 @@ class Group(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True, nullable=False)
-    
+    profiles = db.relationship('Profile', backref='group')
     def __repr__(self):
         return f'<Group {self.name}>'
 
@@ -37,7 +37,26 @@ class Parameter(db.Model):
     
     def __repr__(self):
         return f'<Parameter {self.name}>'
-    
+
+
+class Profile(db.Model):
+    __tablename__ = 'profile'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(128), nullable=False)
+    description = db.Column(db.Text)
+    is_selected = db.Column(db.Boolean, nullable=False, default=False)
+    group_id = db.Column(db.Integer, db.ForeignKey('groups.id'))  # Явный ForeignKey
+    rule_id = db.Column(db.Integer, db.ForeignKey('parameter.id'))  # Явный ForeignKey
+    severity = db.Column(db.String(64), nullable=False)
+    title = db.Column(db.String(256))
+    content_href = db.Column(db.String(512))
+
+    # Явно указываем отношения
+    rule = db.relationship('Parameter', backref='profiles')
+    def __repr__(self):
+        return f'<Profile {self.name}>'
+
+
 # Создаем таблицы в контексте приложения
 #for commit
 with app.app_context():
@@ -56,7 +75,7 @@ def index():
 @app.route('/add', methods=['GET', 'POST'])
 def add_parameter():
     all_groups = Group.query.order_by(Group.name).all()
-    
+
     if request.method == 'POST':
         # Обработка обычной формы
         if 'name' in request.form:
@@ -83,7 +102,7 @@ def add_parameter():
                     # Читаем CSV файл
                     stream = TextIOWrapper(file.stream._file, 'UTF-8')
                     csv_reader = csv.DictReader(stream, delimiter=',')
-                    
+
                     # Обрабатываем каждую строку
                     for row in csv_reader:
                         group_id = None
@@ -91,7 +110,7 @@ def add_parameter():
                             group = Group.query.filter_by(name=row['group']).first()
                             if group:
                                 group_id = group.id
-                        
+
                         new_param = Parameter(
                             name=row['name'],
                             value=row['value'],
@@ -99,11 +118,11 @@ def add_parameter():
                             group_id=group_id
                         )
                         db.session.add(new_param)
-                    
+
                     db.session.commit()
                     flash('Параметры успешно импортированы', 'success')
                     return redirect(url_for('index'))
-                
+
                 except Exception as e:
                     db.session.rollback()
                     flash(f'Ошибка при импорте CSV: {str(e)}', 'error')
@@ -118,7 +137,7 @@ def download_template():
     # Создаем CSV шаблон в памяти
     csv_data = "name,value,description,group\n"
     csv_data += "timeout,30,Таймаут соединения,Network\n"
-    
+
     response = make_response(csv_data)
     response.headers['Content-Disposition'] = 'attachment; filename=parameters_template.csv'
     response.headers['Content-type'] = 'text/csv'
@@ -135,26 +154,26 @@ def delete_parameter(id):
 def edit_parameter(id):
     parameter = Parameter.query.get_or_404(id)
     all_groups = Group.query.order_by(Group.name).all()  # Получаем все группы с сортировкой
-    
+
     if request.method == 'POST':
-   
+
         if not request.form['name'] or not request.form['value']:
             flash('Название и значение обязательны для заполнения', 'error')
             return render_template('edit.html', parameter=parameter, groups=all_groups)
-        
+
         parameter.name = request.form['name']
         parameter.value = request.form['value']
         parameter.description = request.form.get('description', '')
         parameter.group_id = request.form.get('group_id') or None  # Обрабатываем пустое значение
         db.session.commit()
         return redirect(url_for('index'))
-    
+
     return render_template('edit.html', parameter=parameter, groups=all_groups)
 
 @app.route('/export', methods=['POST'])
 def export_to_file():
     selected_ids = request.form.get('selected_ids', '').split(',')
-    
+
     # Получаем только выбранные параметры
     parameters = db.session.query(
         Parameter,
@@ -226,8 +245,50 @@ def export_to_file():
     
     return response
 
+
+@app.route('/profiles', methods=['GET', 'POST'])
+def profiles():
+    if request.method == 'POST':
+        # Обработка добавления нового профиля
+        name = request.form.get('name')
+        description = request.form.get('description')
+        is_selected = True if request.form.get('is_selected') else False
+        group_id = request.form.get('group_id')
+        rule_id = request.form.get('rule_id')
+        severity = request.form.get('severity')
+        title = request.form.get('title')
+        content_href = request.form.get('content_href')
+
+        new_profile = Profile(
+            name=name,
+            description=description,
+            is_selected=is_selected,
+            group_id=group_id,
+            rule_id=rule_id,
+            severity=severity,
+            title=title,
+            content_href=content_href
+        )
+        db.session.add(new_profile)
+        db.session.commit()
+        return redirect(url_for('profiles'))
+
+    # Получение данных для страницы
+    all_profiles = Profile.query.all()
+    groups = Group.query.all()
+    parameters = Parameter.query.all()
+    return render_template('profiles.html', profiles=all_profiles, groups=groups, parameters=parameters)
+
+@app.route('/groups', methods=['GET', 'POST'])
 @app.route('/groups')
 def groups():
+    if request.method == 'POST':
+        group_name = request.form.get('group_name')
+        if group_name:
+            new_group = Group(name=group_name)
+            db.session.add(new_group)
+            db.session.commit()
+            return redirect(url_for('groups'))
     all_groups = Group.query.all()
     return render_template('groups.html', groups=all_groups)
 
@@ -282,13 +343,13 @@ def export_to_xccdf_file():
     </Rule>\n
 """
         file_content += "   </Group>"
-    
-    
+
+
     # Создаем ответ с файлом
     response = make_response(file_content)
     response.headers['Content-Disposition'] = 'attachment; filename=benchmark_xccdf.xml'
     response.headers['Content-type'] = 'text/plain'
-    
+
     return response
 
 if __name__ == '__main__':
