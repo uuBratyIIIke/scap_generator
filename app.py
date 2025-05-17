@@ -22,7 +22,7 @@ class Group(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True, nullable=False)
-    
+    profiles = db.relationship('Profile', backref='group')
     def __repr__(self):
         return f'<Group {self.name}>'
 
@@ -37,7 +37,26 @@ class Parameter(db.Model):
     
     def __repr__(self):
         return f'<Parameter {self.name}>'
-    
+
+
+class Profile(db.Model):
+    __tablename__ = 'profile'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(128), nullable=False)
+    description = db.Column(db.Text)
+    is_selected = db.Column(db.Boolean, nullable=False, default=False)
+    group_id = db.Column(db.Integer, db.ForeignKey('groups.id'))  # Явный ForeignKey
+    rule_id = db.Column(db.Integer, db.ForeignKey('parameter.id'))  # Явный ForeignKey
+    severity = db.Column(db.String(64), nullable=False)
+    title = db.Column(db.String(256))
+    content_href = db.Column(db.String(512))
+
+    # Явно указываем отношения
+    rule = db.relationship('Parameter', backref='profiles')
+    def __repr__(self):
+        return f'<Profile {self.name}>'
+
+
 # Создаем таблицы в контексте приложения
 #for commit
 with app.app_context():
@@ -187,7 +206,39 @@ def export_to_file():
     return response
 
 
-@app.route('/groups', methods=['GET', 'POST'])
+@app.route('/profiles', methods=['GET', 'POST'])
+def profiles():
+    if request.method == 'POST':
+        # Обработка добавления нового профиля
+        name = request.form.get('name')
+        description = request.form.get('description')
+        is_selected = True if request.form.get('is_selected') else False
+        group_id = request.form.get('group_id')
+        rule_id = request.form.get('rule_id')
+        severity = request.form.get('severity')
+        title = request.form.get('title')
+        content_href = request.form.get('content_href')
+
+        new_profile = Profile(
+            name=name,
+            description=description,
+            is_selected=is_selected,
+            group_id=group_id,
+            rule_id=rule_id,
+            severity=severity,
+            title=title,
+            content_href=content_href
+        )
+        db.session.add(new_profile)
+        db.session.commit()
+        return redirect(url_for('profiles'))
+
+    # Получение данных для страницы
+    all_profiles = Profile.query.all()
+    groups = Group.query.all()
+    parameters = Parameter.query.all()
+    return render_template('profiles.html', profiles=all_profiles, groups=groups, parameters=parameters)
+
 @app.route('/groups', methods=['GET', 'POST'])
 def groups():
     if request.method == 'POST':
