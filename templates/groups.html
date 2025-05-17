@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Группы</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Список групп</h1>
+
+    <!-- Кнопка "На главную" -->
+    <a href="{{ url_for('index') }}" class="back-link">← На главную</a>
+
+    <!-- Форма добавления новой группы -->
+    <div class="form-section" style="max-width: 400px; margin: 30px 0;">
+        <h2>Добавить группу</h2>
+        <form method="post" action="{{ url_for('groups') }}">
+            <div class="form-group">
+                <label for="group_name">Название группы</label>
+                <input type="text" id="group_name" name="group_name" required>
+            </div>
+            <button type="submit" class="submit-btn">Добавить</button>
+        </form>
+    </div>
+
+    <!-- Таблица групп -->
+    <table class="groups-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Название группы</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for group in groups %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ group.name }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="2" style="text-align:center; color:#888;">Групп пока нет</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

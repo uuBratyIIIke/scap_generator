@@ -187,8 +187,16 @@ def export_to_file():
     return response
 
 
-@app.route('/groups')
+@app.route('/groups', methods=['GET', 'POST'])
+@app.route('/groups', methods=['GET', 'POST'])
 def groups():
+    if request.method == 'POST':
+        group_name = request.form.get('group_name')
+        if group_name:
+            new_group = Group(name=group_name)
+            db.session.add(new_group)
+            db.session.commit()
+            return redirect(url_for('groups'))
     all_groups = Group.query.all()
     return render_template('groups.html', groups=all_groups)
 

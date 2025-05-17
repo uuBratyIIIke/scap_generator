@@ -3,10 +3,14 @@
 <head>
     <title>Параметры системы</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <form action="{{ url_for('groups') }}">
+        <button type="submit">Группы</button>
+    </form>
 </head>
 <body>
     <h1>Управление параметрами</h1>
     <a href="{{ url_for('add_parameter') }}" class="add-button">+ Добавить параметр</a>
+
    
     <table class="parameters-table">
         <thead>
