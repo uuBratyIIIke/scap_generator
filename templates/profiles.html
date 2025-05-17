@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Название страницы{% endblock %}
+
+{% block content %}
+
+<body>
+    <h1>Профили проверок</h1>
+    
+    <a href="{{ url_for('add_profile') }}" class="export-button">+ Добавить профиль</a>
+    
+    
+</body>
+
+{% endblock %}
