@@ -1,3 +1,4 @@
+/* ===== Базовые стили ===== */
 body {
     font-family: Arial, sans-serif;
     max-width: 800px;
@@ -5,10 +6,39 @@ body {
     padding: 20px;
 }
 
-form {
-    margin-bottom: 20px;
+html {
+    scroll-behavior: smooth;
 }
 
+/* ===== Общие компоненты ===== */
+/* Формы */
+form {
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+input, textarea, select {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+button[type="submit"], .submit-btn {
+    padding: 10px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button[type="submit"]:hover, .submit-btn:hover {
+    background-color: #45a049;
+}
+
+/* Списки */
 ul {
     list-style: none;
     padding: 0;
@@ -19,8 +49,19 @@ li {
     border-bottom: 1px solid #eee;
 }
 
-/* Основные стили таблицы */
-.parameters-table {
+/* Ссылки */
+a {
+    text-decoration: none;
+    color: #2196F3;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* ===== Таблицы ===== */
+/* Общие стили таблиц */
+.parameters-table, .groups-table {
     width: 100%;
     border-collapse: collapse;
     margin: 20px 0;
@@ -28,8 +69,8 @@ li {
     box-shadow: 0 2px 3px rgba(0,0,0,0.1);
 }
 
-/* Стили заголовков */
-.parameters-table th {
+/* Заголовки таблиц */
+.parameters-table th, .groups-table th {
     background-color: #4CAF50;
     color: white;
     text-align: left;
@@ -37,25 +78,33 @@ li {
     border: 1px solid #ddd;
 }
 
-/* Стили ячеек */
-.parameters-table td {
+/* Ячейки таблиц */
+.parameters-table td, .groups-table td {
     padding: 12px;
     border: 1px solid #ddd;
 }
 
-/* Чередование цветов строк */
-.parameters-table tr:nth-child(even) {
+/* Чередование строк */
+.parameters-table tr:nth-child(even), 
+.groups-table tr:nth-child(even) {
     background-color: #f2f2f2;
 }
 
-.parameters-table tr:hover {
+.parameters-table tr:hover, 
+.groups-table tr:hover {
     background-color: #e6f7ff;
 }
 
-/* Стили для кнопок действий */
+/* Специфичные стили для таблицы параметров */
+.parameters-table th:nth-child(4),
+.parameters-table td:nth-child(4) {
+    text-align: center;
+    width: 80px;
+}
+
+/* ===== Кнопки и действия ===== */
 .action-links a {
     margin: 0 5px;
-    text-decoration: none;
     color: #333;
     font-size: 1.2em;
 }
@@ -64,21 +113,41 @@ li {
     color: #4CAF50;
 }
 
-.export-button {
+.export-button, .group-link {
     display: inline-block;
     padding: 10px 15px;
-    background-color: #2196F3;
     color: white;
     text-decoration: none;
     border-radius: 4px;
-    margin-left: 10px;
+    margin-right: 10px;
+}
+
+.export-button {
+    background-color: #2196F3;
 }
 
 .export-button:hover {
     background-color: #0b7dda;
 }
 
+.group-link {
+    background-color: #2196F3;
+}
 
+.add-button, .submit-btn {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.cancel-btn {
+    background-color: #f44336;
+    color: white;
+    padding: 10px 15px;
+    margin-left: 10px;
+    border-radius: 4px;
+}
+
+/* ===== Формы ===== */
 .add-forms {
     display: flex;
     gap: 30px;
@@ -98,83 +167,6 @@ li {
     color: #333;
 }
 
-form {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-input, textarea {
-    padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-}
-
-button[type="submit"] {
-    padding: 10px;
-    background-color: #4CAF50;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
-
-button[type="submit"]:hover {
-    background-color: #45a049;
-}
-
-.hint {
-    font-size: 0.9em;
-    color: #666;
-    margin: 5px 0;
-}
-
-.back-link {
-    display: inline-block;
-    margin-top: 20px;
-    color: #2196F3;
-    text-decoration: none;
-}
-
-.back-link:hover {
-    text-decoration: underline;
-}
-
-.parameters-table th:nth-child(4),
-.parameters-table td:nth-child(4) {
-    text-align: center;
-    width: 80px;
-}
-
-.parameters-table th:nth-child(4),
-.parameters-table td:nth-child(4) {
-    text-align: center;
-    width: 80px;
-}
-
-/* Стили для таблицы групп */
-.groups-table {
-    width: 100%;
-    margin-top: 20px;
-    border-collapse: collapse;
-}
-
-.groups-table th, .groups-table td {
-    padding: 12px;
-    border: 1px solid #ddd;
-    text-align: left;
-}
-
-.groups-table th {
-    background-color: #4CAF50;
-    color: white;
-}
-
-.groups-table tr:nth-child(even) {
-    background-color: #f2f2f2;
-}
-
-/* Стили для формы добавления группы */
 .form-group {
     margin-bottom: 15px;
 }
@@ -184,37 +176,314 @@ button[type="submit"]:hover {
     margin-bottom: 5px;
 }
 
-.form-group input {
+.hint {
+    font-size: 0.9em;
+    color: #666;
+    margin: 5px 0;
+}
+
+/* ===== Навигационное меню ===== */
+.navbar-fixed {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: #2c3e50;
+    padding: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.navbar-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.nav-list {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    height: 50px;
+    align-items: center;
+}
+
+.nav-list li {
+    margin-right: 25px;
+}
+
+.nav-link {
+    color: #ecf0f1;
+    text-decoration: none;
+    font-weight: 500;
+    padding: 8px 12px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.nav-link:hover {
+    background-color: #3498db;
+    color: white;
+}
+
+.nav-link.active {
+    background-color: #2980b9;
+    color: white;
+}
+
+.nav-export {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.nav-export span {
+    color: #bdc3c7;
+    font-size: 0.9em;
+    margin-right: 5px;
+}
+
+/* Иконки */
+.nav-link i {
+    margin-right: 8px;
+    width: 16px;
+    text-align: center;
+}
+
+.nav-export i {
+    margin-right: 5px;
+}
+
+/* ===== Основное содержимое ===== */
+.content-with-padding {
+    padding-top: 70px;
+    min-height: calc(100vh - 70px);
+}
+
+/* ===== Адаптивность ===== */
+@media (max-width: 768px) {
+    .navbar-container {
+        padding: 0 10px;
+    }
+    
+    .nav-list {
+        height: auto;
+        padding: 10px 0;
+        flex-direction: column;
+        display: none;
+        position: absolute;
+        top: 50px;
+        left: 0;
+        right: 0;
+        background-color: #2c3e50;
+    }
+    
+    .nav-list.show {
+        display: flex;
+    }
+    
+    .nav-list li {
+        margin: 5px 0;
+    }
+    
+    .content-with-padding {
+        padding-top: 90px;
+    }
+    
+    .nav-export {
+        display: none;
+    }
+    
+    .mobile-menu-toggle {
+        display: block;
+        color: white;
+        font-size: 1.5em;
+        cursor: pointer;
+        padding: 10px;
+    }
+    
+    .nav-link i {
+        margin-right: 6px;
+    }
+    
+    .add-forms {
+        flex-direction: column;
+        gap: 15px;
+    }
+}
+
+/* Стили для выпадающих списков */
+.form-control {
     width: 100%;
     padding: 8px;
     border: 1px solid #ddd;
     border-radius: 4px;
+    background-color: white;
+    font-size: 1em;
 }
 
-.submit-btn {
+.form-control:focus {
+    border-color: #3498db;
+    outline: none;
+    box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
+}
+
+/* Стили для опций */
+.form-control option {
+    padding: 5px;
+}
+
+/* Специальный стиль для выбранной опции */
+.form-control option:checked {
+    background-color: #3498db;
+    color: white;
+}
+
+/* Общие стили для форм */
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.form-control {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1em;
+}
+
+textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+/* Стили для сообщений об ошибках */
+.error-message {
+    color: #f44336;
+    font-size: 0.9em;
+    margin-top: 5px;
+}
+
+input:required, select:required {
+    border-left: 3px solid #4CAF50;
+}
+
+input:invalid, select:invalid {
+    border-left: 3px solid #f44336;
+}
+
+.flash-messages {
+    position: fixed;
+    top: 70px;
+    right: 20px;
+    z-index: 1000;
+}
+
+.flash-error {
+    background-color: #f44336;
+    color: white;
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    border-radius: 4px;
+}
+
+.flash-success {
     background-color: #4CAF50;
     color: white;
     padding: 10px 15px;
-    border: none;
+    margin-bottom: 10px;
     border-radius: 4px;
+}
+
+/* Стили для загрузки файлов */
+input[type="file"] {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: white;
+}
+
+/* Подсказки для CSV */
+.csv-hint {
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 5px;
+    line-height: 1.4;
+}
+
+.csv-hint a {
+    color: #2196F3;
+}
+
+/* Стили для чекбоксов */
+.export-checkbox {
+    width: 18px;
+    height: 18px;
     cursor: pointer;
 }
 
-.cancel-btn {
-    padding: 10px 15px;
+/* Кнопка экспорта */
+#exportForm {
+    display: inline-block;
     margin-left: 10px;
-    background-color: #f44336;
-    color: white;
-    text-decoration: none;
-    border-radius: 4px;
 }
 
-.group-link {
-    display: inline-block;
+/* Подсветка выбранных строк */
+.parameters-table tr.selected {
+    background-color: #e6f7ff;
+}
+
+/* Стили для блока кнопок */
+.action-buttons {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.action-button {
     padding: 10px 15px;
-    background-color: #2196F3;
+    background-color: #4CAF50;
     color: white;
-    text-decoration: none;
+    border: none;
     border-radius: 4px;
-    margin-right: 10px;
+    cursor: pointer;
+    font-size: 1em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.action-button:hover {
+    background-color: #45a049;
+}
+
+.action-button i {
+    font-size: 1.1em;
+}
+
+.export-button {
+    background-color: #2196F3;
+}
+
+.export-button:hover {
+    background-color: #0b7dda;
+}
+
+#deselectAllBtn {
+    background-color: #f44336;
+}
+
+#deselectAllBtn:hover {
+    background-color: #d32f2f;
 }

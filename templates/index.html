@@ -1,47 +1,106 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Параметры системы</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
+{% extends "base.html" %}
+
+{% block title %}Название страницы{% endblock %}
+
+{% block content %}
 <body>
     <h1>Управление параметрами</h1>
-    <a href="{{ url_for('add_parameter') }}" class="add-button">+ Добавить параметр</a>
-   
-    <table class="parameters-table">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>name</th>
-                <th>value</th>
-                <th>description</th>
-                <th>group_name</th>
-                <th>Действия</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for param in parameters %}
-            <tr>
-                <td>{{ param.id }}</td>
-                <td>{{ param.name }}</td>
-                <td>{{ param.value }}</td>
-                <td>{{ param.description or '' }}</td>
-                <td>
-                {% if param.group.name %}
-                    {{ param.group.name }}
-                {% else %}
-                    —
-                {% endif %}
-            </td>
-                <td class="action-links">
-                    <a href="{{ url_for('edit_parameter', id=param.id) }}" title="Редактировать">✏️</a>
-                    <a href="{{ url_for('delete_parameter', id=param.id) }}" title="Удалить" 
-                       onclick="return confirm('Вы уверены?')">❌</a>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <a href="{{ url_for('add_parameter') }}" class="export-button">+ Добавить параметр</a>
     <a href="{{ url_for('export_to_file') }}" class="export-button">Экспорт в XML</a>
-</body>
-</html>
+    <form id="exportForm" method="POST" action="{{ url_for('export_to_file') }}">
+        <table class="parameters-table">
+            <thead>
+                <tr>
+                    <th width="40px">Выбор</th>
+                    <th>ID</th>
+                    <th>name</th>
+                    <th>value</th>
+                    <th>description</th>
+                    <th>group_name</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for param in parameters %}
+                <tr>
+                    <td style="text-align: center;">
+                        <input type="checkbox" name="export_ids" value="{{ param.id }}" class="export-checkbox">
+                    </td>
+                    <td>{{ param.id }}</td>
+                    <td>{{ param.name }}</td>
+                    <td>{{ param.value }}</td>
+                    <td>{{ param.description or '' }}</td>
+                    <td>
+                    {% if param.group.name %}
+                        {{ param.group.name }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                    <td class="action-links">
+                        <a href="{{ url_for('edit_parameter', id=param.id) }}" title="Редактировать">✏️</a>
+                        <a href="{{ url_for('delete_parameter', id=param.id) }}" title="Удалить" 
+                        onclick="return confirm('Вы уверены?')">❌</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="action-buttons">
+            <button type="button" id="selectAllBtn" class="action-button">
+                <i class="fas fa-check-square"></i> Выделить все
+            </button>
+            <button type="button" id="deselectAllBtn" class="action-button">
+                <i class="fas fa-square"></i> Снять все
+            </button>
+            <button type="submit" class="action-button export-button">
+                <i class="fas fa-download"></i> Экспорт выбранных
+            </button>
+        </div>
+
+    </form>
+
+    <script>
+    // Функция для обновления счетчика
+    function updateSelectionCount() {
+        const selected = document.querySelectorAll('.param-checkbox:checked').length;
+        const total = document.querySelectorAll('.param-checkbox').length;
+        document.getElementById('selectedCount').textContent = selected;
+        document.getElementById('selectAll').checked = selected === total && total > 0;
+    }
+
+    // Функция для выделения/снятия всех чекбоксов
+    function toggleAllCheckboxes(checked) {
+        const checkboxes = document.querySelectorAll('.param-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = checked;
+            // Подсветка строки
+            checkbox.closest('tr').style.backgroundColor = checked ? '#e6f7ff' : '';
+        });
+        updateSelectionCount();
+    }
+
+    // Обработчики кнопок
+    document.getElementById('selectAllBtn').addEventListener('click', () => toggleAllCheckboxes(true));
+    document.getElementById('deselectAllBtn').addEventListener('click', () => toggleAllCheckboxes(false));
+
+    // Чекбокс "Выделить все" в заголовке
+    document.getElementById('selectAll').addEventListener('change', function() {
+        toggleAllCheckboxes(this.checked);
+    });
+
+    // Обработчик для отдельных чекбоксов
+    document.querySelectorAll('.param-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            // Подсветка строки
+            this.closest('tr').style.backgroundColor = this.checked ? '#e6f7ff' : '';
+            updateSelectionCount();
+        });
+    });
+
+    // Инициализация счетчика
+    updateSelectionCount();
+    </script>
+
+{% endblock %}

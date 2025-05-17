@@ -55,6 +55,8 @@ def index():
 
 @app.route('/add', methods=['GET', 'POST'])
 def add_parameter():
+    all_groups = Group.query.order_by(Group.name).all()
+    
     if request.method == 'POST':
         # Обработка обычной формы
         if 'name' in request.form:
@@ -62,44 +64,65 @@ def add_parameter():
                 new_param = Parameter(
                     name=request.form['name'],
                     value=request.form['value'],
-                    description=request.form.get('description', '')
+                    description=request.form.get('description', ''),
+                    group_id=request.form.get('group_id') or None
                 )
                 db.session.add(new_param)
                 db.session.commit()
+                flash('Параметр успешно добавлен', 'success')
                 return redirect(url_for('index'))
             except Exception as e:
                 db.session.rollback()
-                return f"Ошибка при добавлении: {str(e)}", 400
+                flash(f'Ошибка при добавлении: {str(e)}', 'error')
         
-        # Обработка загрузки файла
-        if 'csv_file' in request.files:
+        # Обработка загрузки CSV
+        elif 'csv_file' in request.files:
             file = request.files['csv_file']
             if file and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-                file.save(filepath)
-                
                 try:
-                    with open(filepath, 'r', encoding='utf-8') as f:
-                        csv_reader = csv.DictReader(f, delimiter=',')
-                        for row in csv_reader:
-                            param = Parameter(
-                                name=row['name'],
-                                value=row.get('value', ''),
-                                description=row.get('description', '')
-                            )
-                            db.session.add(param)
-                        db.session.commit()
+                    # Читаем CSV файл
+                    stream = TextIOWrapper(file.stream._file, 'UTF-8')
+                    csv_reader = csv.DictReader(stream, delimiter=',')
+                    
+                    # Обрабатываем каждую строку
+                    for row in csv_reader:
+                        group_id = None
+                        if 'group' in row and row['group']:
+                            group = Group.query.filter_by(name=row['group']).first()
+                            if group:
+                                group_id = group.id
+                        
+                        new_param = Parameter(
+                            name=row['name'],
+                            value=row['value'],
+                            description=row.get('description', ''),
+                            group_id=group_id
+                        )
+                        db.session.add(new_param)
+                    
+                    db.session.commit()
+                    flash('Параметры успешно импортированы', 'success')
                     return redirect(url_for('index'))
+                
                 except Exception as e:
                     db.session.rollback()
-                    return f"Ошибка при импорте CSV: {str(e)}", 400
-                finally:
-                    if os.path.exists(filepath):
-                        os.remove(filepath)
+                    flash(f'Ошибка при импорте CSV: {str(e)}', 'error')
     
-    return render_template('add.html')
+    return render_template('add.html', groups=all_groups)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() == 'csv'
+
+@app.route('/download_template')
+def download_template():
+    # Создаем CSV шаблон в памяти
+    csv_data = "name,value,description,group\n"
+    csv_data += "timeout,30,Таймаут соединения,Network\n"
+    
+    response = make_response(csv_data)
+    response.headers['Content-Disposition'] = 'attachment; filename=parameters_template.csv'
+    response.headers['Content-type'] = 'text/csv'
+    return response
 
 @app.route('/delete/<int:id>')
 def delete_parameter(id):
@@ -111,34 +134,51 @@ def delete_parameter(id):
 @app.route('/edit/<int:id>', methods=['GET', 'POST'])
 def edit_parameter(id):
     parameter = Parameter.query.get_or_404(id)
-    groups = Group.query.all()
+    all_groups = Group.query.order_by(Group.name).all()  # Получаем все группы с сортировкой
+    
     if request.method == 'POST':
+   
+        if not request.form['name'] or not request.form['value']:
+            flash('Название и значение обязательны для заполнения', 'error')
+            return render_template('edit.html', parameter=parameter, groups=all_groups)
+        
         parameter.name = request.form['name']
         parameter.value = request.form['value']
-        parameter.description = request.form['description']
-        parameter.group_id = request.form.get('group_id') or None
+        parameter.description = request.form.get('description', '')
+        parameter.group_id = request.form.get('group_id') or None  # Обрабатываем пустое значение
         db.session.commit()
         return redirect(url_for('index'))
-    return render_template('edit.html', parameter=parameter, groups=groups)
+    
+    return render_template('edit.html', parameter=parameter, groups=all_groups)
 
-@app.route('/export')
+@app.route('/export', methods=['POST'])
 def export_to_file():
-    # Получаем все параметры из базы
-    parameters = Parameter.query.all()
+    selected_ids = request.form.get('selected_ids', '').split(',')
+    
+    # Получаем только выбранные параметры
+    parameters = db.session.query(
+        Parameter,
+        Group.name.label('group_name')
+    ).outerjoin(
+        Group, Parameter.group_id == Group.id
+    ).filter(
+        Parameter.id.in_(selected_ids)
+    ).all()
+
     file_content = ""
     
     #Формируем блок defenitions
     file_content += "<definitions>\n" 
 
-    for param in parameters:
+    for param, group_name in parameters:
         file_content += f"""
-    <definition id=\"oval:custom:def:{param.id}\" version=\"1\" class=\"compliance\">
+    <definition id=\"oval:{group_name or "custom"}:def:{param.id}\" version=\"1\" class=\"compliance\">
         <metadata>
             <title>___</title>
             <description>___</description>
         </metadata>
         <criteria>
-            <criterion test_ref=\"oval:custom:tst:{param.id}\"/>
+            <criterion test_ref=\"oval:{group_name or "custom"}:tst:{param.id}\"/>
         </criteria>
     </definition>\n\n"""
    
@@ -146,11 +186,11 @@ def export_to_file():
     
     # Формируем блок tests
     file_content += "<tests>\n"
-    for param in parameters:
+    for param, group_name in parameters:
         file_content += f"""
-    <ind:textfilecontent54_test id=\"oval:custom:tst:{param.id}\" version=\"1\" check=\"all\"  comment=\"____\">
-      <ind:object object_ref=\"oval:custom:obj:{param.id}\" />
-      <ind:state state_ref=\"oval:custom:ste:{param.id}\" />
+    <ind:textfilecontent54_test id=\"oval:{group_name or "custom"}:tst:{param.id}\" version=\"1\" check=\"all\"  comment=\"____\">
+      <ind:object object_ref=\"oval:{group_name or "custom"}:obj:{param.id}\" />
+      <ind:state state_ref=\"oval:{group_name or "custom"}:ste:{param.id}\" />
     </ind:textfilecontent54_test>\n\n"""
     
     file_content += "</tests>\n\n"
@@ -158,9 +198,9 @@ def export_to_file():
     # Формируем блок objects
     file_content += "<objects>\n"
 
-    for param in parameters:
+    for param, group_name in parameters:
         file_content += f"""
-    <ind:textfilecontent54_object id=\"oval:custom:obj:{param.id}\" version=\"1\">
+    <ind:textfilecontent54_object id=\"oval:{group_name or "custom"}:obj:{param.id}\" version=\"1\">
         <ind:filepath>/mnt/d/Studying/Pg_conf_file/pg_conf_file_04/postgresql.conf</ind:filepath>
         <ind:pattern operation=\"pattern match\">{param.name}=\s*'{param.value}'?</ind:pattern>
         <ind:instance datatype=\"int\" operation=\"greater than or equal\">1</ind:instance>
@@ -171,9 +211,9 @@ def export_to_file():
     # Формируем блок states
     file_content += "<states>\n"
 
-    for param in parameters:
+    for param, group_name in parameters:
         file_content += f"""
-    <ind:textfilecontent54_state id=\"oval:custom:ste:{param.id}\" version=\"1\">
+    <ind:textfilecontent54_state id=\"oval:{group_name or "custom"}:ste:{param.id}\" version=\"1\">
         <ind:text operation=\"pattern match\">{param.value}'?</ind:text>
     </ind:textfilecontent54_state>\n\n"""
 
@@ -185,7 +225,6 @@ def export_to_file():
     response.headers['Content-type'] = 'text/plain'
     
     return response
-
 
 @app.route('/groups')
 def groups():
@@ -220,56 +259,37 @@ def export_to_xccdf_file():
     ).outerjoin(
         Group, Parameter.group_id == Group.id
     ).all()
+    groups = db.session.query(Group)
 
-    # Формируем содержимое файла
-    file_content = "ID|Name|Value|Group|Description\n"  # Заголовки
-    for param, group_name in parameters:
-        file_content += f"{param.id}|{param.name}|{param.value}|{group_name or 'No group'}|{param.description or ''}\n"
+    file_content = ""
+
+    for group in groups:
+        file_content += f"""
+    <Group id="xccdf_org.postgresql_group_{group.name}">
+        <title>{group.name} Configuration Group</title>
+        <description>Проверки {group.name} </description>
+        
+        <!-- Правила -->
+    """
+        for param in parameters:
+            if param.Parameter.group_id == group.id:
+                file_content += f"""
+    <Rule id=\"xccdf_org.postgresql_rule_{param.Parameter.name}\" severity=\"high\">
+        <title>{param.Parameter.description}</title>
+        <check system="http://oval.mitre.org/XMLSchema/oval-definitions-5">
+            <check-content-ref href=\"check_postgresql_ssl.xml\" name=\"oval:{group.name or "custom"}:def:{param.Parameter.id}\"/>
+        </check>
+    </Rule>\n
+"""
+        file_content += "   </Group>"
+    
     
     # Создаем ответ с файлом
     response = make_response(file_content)
-    response.headers['Content-Disposition'] = 'attachment; filename=parameters_export.xccdf'
+    response.headers['Content-Disposition'] = 'attachment; filename=benchmark_xccdf.xml'
     response.headers['Content-type'] = 'text/plain'
     
     return response
-    
-    parameters = Parameter.query.options(db.joinedload(Parameter.group)).all()
-    file_content = ""
 
-    for param in parameters:
-        if(not param.group.name):
-            continue 
-        file_content += f"""
-<Group id="xccdf_org.postgresql_group_{param.id}">
-"""
-
-    '''
-    <Group id="xccdf_org.postgresql_group_{param.group.name}">
-        <title>SSL Configuration Group</title>
-        <description>Проверки SSL-параметров</description>
-
-        <!-- Правила -->
-        <Rule id="xccdf_org.postgresql_rule_ssl_enabled" severity="high">
-            <title>SSL должен быть включён</title>
-            <check system="http://oval.mitre.org/XMLSchema/oval-definitions-5">
-                <check-content-ref href="check_postgresql_ssl.xml" name="oval:ssl:def:1"/>
-            </check>
-        </Rule>
-		
-		 <Rule id="xccdf_org.postgresql_rule_ssl_prefer_server_ciphers" severity="high">
-            <title>Использовать серверные шифры по умолчанию</title>
-            <check system="http://oval.mitre.org/XMLSchema/oval-definitions-5">
-                <check-content-ref href="check_postgresql_ssl.xml" name="oval:ssl:def:2"/>
-            </check>
-        </Rule>
-		
-		<Rule id="xccdf_org.postgresql_rule_ssl_min_protocol_version" severity="high">
-            <title>Минимальная версия TLS - 1.2</title>
-            <check system="http://oval.mitre.org/XMLSchema/oval-definitions-5">
-                <check-content-ref href="check_postgresql_ssl.xml" name="oval:ssl:def:3"/>
-            </check>
-        </Rule>
-    </Group>
-    '''
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

@@ -1,19 +1,41 @@
-<form action="/edit/{{ parameter.id }}" method="POST">
-    <input type="text" name="name" value="{{ parameter.name }}">
-    <input type="text" name="value" value="{{ parameter.value }}">
-    <input type="text" name="description" value="{{ parameter.description }}">
+{% extends "base.html" %}
+
+{% block title %}Редактирование параметра{% endblock %}
+
+{% block content %}
+<h1>Редактирование параметра</h1>
+
+<form method="POST">
     <div class="form-group">
-    <label for="group_id">Group ID:</label>
-    <select name="group_id" id="group_id">
-        <option value="">— Без группы —</option>
-        {% for group in groups %}
-        <option value="{{ group.id }}" 
-                {% if parameter.group_id == group.id %}selected{% endif %}>
-            {{ group.id }} - {{ group.name }}
-        </option>
-        {% endfor %}
-    </select>
-</div>
-    <button type="submit">Update</button>
+        <label for="name">Название:</label>
+        <input type="text" id="name" name="name" value="{{ parameter.name }}" required>
+    </div>
+    
+    <div class="form-group">
+        <label for="value">Значение:</label>
+        <input type="text" id="value" name="value" value="{{ parameter.value }}" required>
+    </div>
+    
+    <div class="form-group">
+        <label for="group_id">Группа:</label>
+        <select id="group_id" name="group_id" class="form-control">
+            <option value="">-- Без группы --</option>
+            {% for group in groups %}
+            <option value="{{ group.id }}" 
+                    {% if parameter.group_id == group.id %}selected{% endif %}>
+                {{ group.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div class="form-group">
+        <label for="description">Описание:</label>
+        <textarea id="description" name="description">{{ parameter.description or '' }}</textarea>
+    </div>
+    
+    <button type="submit" class="submit-btn">Сохранить</button>
+    <a href="{{ url_for('index') }}" class="cancel-btn">Отмена</a>
 </form>
 
+{% endblock %}
