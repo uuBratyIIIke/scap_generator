@@ -11,11 +11,7 @@
         <div class="navbar-container">
             <nav>
                 <ul class="nav-list">
-                    <li>
-                        <a href="{{ url_for('profiles') }}" class="nav-link {% if request.endpoint == 'profiles' %}active{% endif %}">
-                            <i class="fas fa-list"></i> Профили
-                        </a>
-                    </li>
+
                     <li>
                         <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
                             <i class="fas fa-list"></i> Параметры
