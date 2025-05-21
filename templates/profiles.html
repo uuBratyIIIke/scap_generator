@@ -1,104 +1,78 @@
-<!-- templates/profiles.html -->
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>Профили</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <h1>Профили</h1>
-    <a href="{{ url_for('index') }}" class="back-link">← На главную</a>
+{% extends "base.html" %}
 
-    <!-- Форма добавления профиля -->
-    <div class="form-section" style="max-width: 600px; margin: 30px 0;">
-        <h2>Добавить профиль</h2>
-        <form method="post" action="{{ url_for('profiles') }}">
-            <div class="form-group">
-                <label for="name">Название профиля *</label>
-                <input type="text" id="name" name="name" required>
+{% block title %}Список профилей{% endblock %}
+
+{% block content %}
+
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>Список профилей</h1>
+            <a href="{{ url_for('add_profile') }}" class="export-button">
+                <i class="fas fa-plus"></i> Добавить профиль
+            </a>
+        </div>
+
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="parameters-table">
+                        <thead class="thead-dark">
+                            <tr>
+                                <th>Название</th>
+                                <th>Описание</th>
+                                <th>Группа</th>
+                                <th>Правило</th>
+                                <th>Важность</th>
+                                <th>Активен</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for profile in profiles %}
+                            <tr>
+                                <td>{{ profile.name }}</td>
+                                <td>{{ profile.description|default('', true) }}</td>
+                                <td>{{ profile.group.name if profile.group else '—' }}</td>
+                                <td>{{ profile.rule.name if profile.rule else '—' }}</td>
+                                <td>
+                                    <span class="badge 
+                                        {% if profile.severity == 'high' %}bg-danger
+                                        {% elif profile.severity == 'medium' %}bg-warning
+                                        {% else %}bg-info{% endif %}">
+                                        {{ profile.severity }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if profile.is_selected %}
+                                    <i class="fas fa-check-circle text-success"></i>
+                                    {% else %}
+                                    <i class="fas fa-times-circle text-secondary"></i>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('edit_profile', id=profile.id) }}" 
+                                    class="btn btn-sm btn-outline-primary"
+                                    title="Редактировать">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{{ url_for('delete_profile', id=profile.id) }}" 
+                                    class="btn btn-sm btn-outline-danger"
+                                    title="Удалить"
+                                    onclick="return confirm('Удалить профиль {{ profile.name }}?')">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center">Нет профилей</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="description">Описание</label>
-                <textarea id="description" name="description"></textarea>
-            </div>
-            <div class="form-group">
-                <label for="is_selected">Активен</label>
-                <input type="checkbox" id="is_selected" name="is_selected">
-            </div>
-            <div class="form-group">
-                <label for="group_id">Группа</label>
-                <select id="group_id" name="group_id">
-                    <option value="">-- Выберите группу --</option>
-                    {% for group in groups %}
-                        <option value="{{ group.id }}">{{ group.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="rule_id">Правило</label>
-                <select id="rule_id" name="rule_id">
-                    <option value="">-- Выберите правило --</option>
-                    {% for param in parameters %}
-                        <option value="{{ param.id }}">{{ param.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="severity">Уровень критичности *</label>
-                <select id="severity" name="severity" required>
-                    <option value="low">Низкий</option>
-                    <option value="medium">Средний</option>
-                    <option value="high">Высокий</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label for="title">Заголовок</label>
-                <input type="text" id="title" name="title">
-            </div>
-            <div class="form-group">
-                <label for="content_href">Ссылка на контент</label>
-                <input type="url" id="content_href" name="content_href">
-            </div>
-            <button type="submit" class="submit-btn">Добавить</button>
-        </form>
+        </div>
     </div>
 
-    <!-- Таблица профилей -->
-    <table class="parameters-table">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Название</th>
-                <th>Описание</th>
-                <th>Активен</th>
-                <th>Группа</th>
-                <th>Правило</th>
-                <th>Критичность</th>
-                <th>Действия</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for profile in profiles %}
-            <tr>
-                <td>{{ profile.id }}</td>
-                <td>{{ profile.name }}</td>
-                <td>{{ profile.description or '' }}</td>
-                <td>{{ '✅' if profile.is_selected else '❌' }}</td>
-                <td>{{ profile.group.name if profile.group else '' }}</td>
-                <td>{{ profile.rule.name if profile.rule else '' }}</td>
-                <td>{{ profile.severity }}</td>
-                <td class="action-links">
-                    <a href="#">✏️</a>
-                    <a href="#">🗑️</a>
-                </td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="8" style="text-align:center; color:#888;">Профилей пока нет</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</body>
-</html>
+{% endblock %}

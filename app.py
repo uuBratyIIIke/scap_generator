@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 from flask import make_response
@@ -11,61 +11,77 @@ UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'csv'}
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
+# Конфигурация для MySQL
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://admin:admin@localhost/safety_checker_new?charset=utf8mb4'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
 
 db = SQLAlchemy(app)
 
 class Group(db.Model):
-    __tablename__ = 'groups'  # Явно указываем имя таблицы
+    __tablename__ = 'groups'
     
-    id = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)  # Явно указываем autoincrement
     name = db.Column(db.String(100), unique=True, nullable=False)
+    
+    # Для MySQL может потребоваться указать длину индекса
+    __table_args__ = (
+        db.Index('ix_groups_name', name, mysql_length=100),
+        {'mysql_engine': 'InnoDB'}  # Указываем движок для MySQL
+    )
+    
     profiles = db.relationship('Profile', backref='group')
+    
     def __repr__(self):
         return f'<Group {self.name}>'
 
 class Parameter(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.Text, unique=True, nullable=False)
+    __tablename__ = 'parameter'
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)  # Явно указываем autoincrement
+    name = db.Column(db.String(255), unique=True, nullable=False)
     value = db.Column(db.Text, nullable=False)
     description = db.Column(db.Text)
-    group_id = db.Column(db.Integer, db.ForeignKey('groups.id'))  # Внешний ключ    
-
-    group = db.relationship('Group', backref='parameters')  # Связь для ORM
+    group_id = db.Column(db.Integer, db.ForeignKey('groups.id'))
+    
+    __table_args__ = (
+        db.Index('ix_parameters_name', name, mysql_length=255),
+        {'mysql_engine': 'InnoDB'}
+    )
+    
+    group = db.relationship('Group', backref='parameter')
     
     def __repr__(self):
         return f'<Parameter {self.name}>'
 
-
 class Profile(db.Model):
     __tablename__ = 'profile'
-    id = db.Column(db.Integer, primary_key=True)
+    
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)  # Явно указываем autoincrement
     name = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
     is_selected = db.Column(db.Boolean, nullable=False, default=False)
-    group_id = db.Column(db.Integer, db.ForeignKey('groups.id'))  # Явный ForeignKey
-    rule_id = db.Column(db.Integer, db.ForeignKey('parameter.id'))  # Явный ForeignKey
+    group_id = db.Column(db.Integer, db.ForeignKey('groups.id'))
+    rule_id = db.Column(db.Integer)
     severity = db.Column(db.String(64), nullable=False)
     title = db.Column(db.String(256))
     content_href = db.Column(db.String(512))
-
-    # Явно указываем отношения
-    rule = db.relationship('Parameter', backref='profiles')
+    
+    __table_args__ = {'mysql_engine': 'InnoDB'}
+    
+    #rule = db.relationship('Parameter', backref='profiles')
+    
     def __repr__(self):
         return f'<Profile {self.name}>'
 
-
 # Создаем таблицы в контексте приложения
-#for commit
-with app.app_context():
-    db.create_all()  # Создаём заново с новыми структурами    
+#with app.app_context():
+#    db.create_all()  # Создаём таблицы, если они не существуют  
 
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
 
 @app.route('/')
 def index():
@@ -172,7 +188,7 @@ def edit_parameter(id):
 
 @app.route('/export', methods=['POST'])
 def export_to_file():
-    selected_ids = request.form.get('selected_ids', '').split(',')
+    selected_ids = request.form.getlist('selected_ids')
 
     # Получаем только выбранные параметры
     parameters = db.session.query(
@@ -185,7 +201,6 @@ def export_to_file():
     ).all()
 
     file_content = ""
-    
     #Формируем блок defenitions
     file_content += "<definitions>\n" 
 
@@ -233,7 +248,7 @@ def export_to_file():
     for param, group_name in parameters:
         file_content += f"""
     <ind:textfilecontent54_state id=\"oval:{group_name or "custom"}:ste:{param.id}\" version=\"1\">
-        <ind:text operation=\"pattern match\">{param.value}'?</ind:text>
+        <ind:text operation=\"pattern match\">{param.value}</ind:text>
     </ind:textfilecontent54_state>\n\n"""
 
     file_content += "</states>"
@@ -246,41 +261,83 @@ def export_to_file():
     return response
 
 
-@app.route('/profiles', methods=['GET', 'POST'])
+# Маршруты для работы с профилями
+@app.route('/profiles')
 def profiles():
+    profiles = Profile.query.all()
+    return render_template('profiles.html', profiles=profiles)
+
+@app.route('/profiles/add', methods=['GET', 'POST'])
+def add_profile():
     if request.method == 'POST':
-        # Обработка добавления нового профиля
-        name = request.form.get('name')
-        description = request.form.get('description')
-        is_selected = True if request.form.get('is_selected') else False
-        group_id = request.form.get('group_id')
-        rule_id = request.form.get('rule_id')
-        severity = request.form.get('severity')
-        title = request.form.get('title')
-        content_href = request.form.get('content_href')
-
-        new_profile = Profile(
-            name=name,
-            description=description,
-            is_selected=is_selected,
-            group_id=group_id,
-            rule_id=rule_id,
-            severity=severity,
-            title=title,
-            content_href=content_href
-        )
-        db.session.add(new_profile)
-        db.session.commit()
-        return redirect(url_for('profiles'))
-
-    # Получение данных для страницы
-    all_profiles = Profile.query.all()
+        try:
+            profile = Profile(
+                name=request.form['name'],
+                description=request.form.get('description'),
+                is_selected='is_selected' in request.form,
+                group_id=request.form.get('group_id'),
+                rule_id=request.form.get('rule_id'),
+                severity=request.form['severity'],
+                title=request.form.get('title'),
+                content_href=request.form.get('content_href')
+            )
+            db.session.add(profile)
+            db.session.commit()
+            flash('Профиль успешно добавлен', 'success')
+            return redirect(url_for('profiles'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Ошибка при добавлении профиля: {str(e)}', 'error')
+    
     groups = Group.query.all()
     parameters = Parameter.query.all()
-    return render_template('profiles.html', profiles=all_profiles, groups=groups, parameters=parameters)
+    return render_template('add_profile.html', 
+                         groups=groups,
+                         parameters=parameters)
+
+@app.route('/profiles/edit/<int:id>', methods=['GET', 'POST'])
+def edit_profile(id):
+    profile = Profile.query.get_or_404(id)
+    
+    if request.method == 'POST':
+        try:
+            profile.name = request.form['name']
+            profile.description = request.form.get('description')
+            profile.is_selected = 'is_selected' in request.form
+            profile.group_id = request.form.get('group_id')
+            profile.rule_id = request.form.get('rule_id')
+            profile.severity = request.form['severity']
+            profile.title = request.form.get('title')
+            profile.content_href = request.form.get('content_href')
+            
+            db.session.commit()
+            flash('Профиль успешно обновлен', 'success')
+            return redirect(url_for('profiles'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Ошибка при обновлении профиля: {str(e)}', 'error')
+    
+    groups = Group.query.all()
+    parameters = Parameter.query.all()
+    return render_template('edit_profile.html', 
+                         profile=profile,
+                         groups=groups,
+                         parameters=parameters)
+
+
+@app.route('/profiles/delete/<int:id>')
+def delete_profile(id):
+    try:
+        profile = Profile.query.get_or_404(id)
+        db.session.delete(profile)
+        db.session.commit()
+        flash('Профиль успешно удален', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Ошибка при удалении профиля: {str(e)}', 'error')
+    return redirect(url_for('profiles'))
 
 @app.route('/groups', methods=['GET', 'POST'])
-@app.route('/groups')
 def groups():
     if request.method == 'POST':
         group_name = request.form.get('group_name')
@@ -335,12 +392,12 @@ def export_to_xccdf_file():
         for param in parameters:
             if param.Parameter.group_id == group.id:
                 file_content += f"""
-    <Rule id=\"xccdf_org.postgresql_rule_{param.Parameter.name}\" severity=\"high\">
-        <title>{param.Parameter.description}</title>
-        <check system="http://oval.mitre.org/XMLSchema/oval-definitions-5">
-            <check-content-ref href=\"check_postgresql_ssl.xml\" name=\"oval:{group.name or "custom"}:def:{param.Parameter.id}\"/>
-        </check>
-    </Rule>\n
+        <Rule id=\"xccdf_org.postgresql_rule_{param.Parameter.name}\" severity=\"high\">
+            <title>{param.Parameter.description}</title>
+            <check system="http://oval.mitre.org/XMLSchema/oval-definitions-5">
+                <check-content-ref href=\"check_postgresql_ssl.xml\" name=\"oval:{group.name or "custom"}:def:{param.Parameter.id}\"/>
+            </check>
+        </Rule>\n
 """
         file_content += "   </Group>"
 

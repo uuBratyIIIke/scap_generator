@@ -5,13 +5,22 @@
 {% block content %}
 <body>
     <h1>Управление параметрами</h1>
-    <a href="{{ url_for('add_parameter') }}" class="export-button">+ Добавить параметр</a>
-    <a href="{{ url_for('export_to_file') }}" class="export-button">Экспорт в XML</a>
+    
     <form id="exportForm" method="POST" action="{{ url_for('export_to_file') }}">
+        <a href="{{ url_for('add_parameter') }}" class="export-button">+ Добавить параметр</a>
+        <div class="action-buttons">
+            <button type="submit" class="action-button export-button" id="exportSelectedBtn">
+                <i class="fas fa-download"></i> Экспорт выбранных (<span id="selectedCount">0</span>)
+            </button>
+        </div>
+    
         <table class="parameters-table">
             <thead>
                 <tr>
-                    <th width="40px">Выбор</th>
+                    <th width="40px">
+                        <input type="checkbox" id="selectAll" class="select-all-checkbox">
+                        <label for="selectAll">Выбрать всё</label>
+                    </th>
                     <th>ID</th>
                     <th>name</th>
                     <th>value</th>
@@ -24,23 +33,22 @@
                 {% for param in parameters %}
                 <tr>
                     <td style="text-align: center;">
-                        <input type="checkbox" name="export_ids" value="{{ param.id }}" class="export-checkbox">
+                        <input type="checkbox" name="selected_ids" value="{{ param.id }}" class="param-checkbox">
                     </td>
                     <td>{{ param.id }}</td>
                     <td>{{ param.name }}</td>
                     <td>{{ param.value }}</td>
                     <td>{{ param.description or '' }}</td>
                     <td>
-                    {% if param.group.name %}
-                        {{ param.group.name }}
-                    {% else %}
-                        —
-                    {% endif %}
-                </td>
+                        {% if param.group.name %}
+                            {{ param.group.name }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
                     <td class="action-links">
                         <a href="{{ url_for('edit_parameter', id=param.id) }}" title="Редактировать">✏️</a>
-                        <a href="{{ url_for('delete_parameter', id=param.id) }}" title="Удалить"
-                        onclick="return confirm('Вы уверены?')">❌</a>
+                        <a href="{{ url_for('delete_parameter', id=param.id) }}" title="Удалить" onclick="return confirm('Вы уверены?')">❌</a>
                     </td>
                 </tr>
                 {% endfor %}
@@ -48,59 +56,61 @@
         </table>
 
         <div class="action-buttons">
-            <button type="button" id="selectAllBtn" class="action-button">
-                <i class="fas fa-check-square"></i> Выделить все
-            </button>
-            <button type="button" id="deselectAllBtn" class="action-button">
-                <i class="fas fa-square"></i> Снять все
-            </button>
-            <button type="submit" class="action-button export-button">
-                <i class="fas fa-download"></i> Экспорт выбранных
+            <button type="submit" class="action-button export-button" id="exportSelectedBtn">
+                <i class="fas fa-download"></i> Экспорт выбранных (<span id="selectedCount">0</span>)
             </button>
         </div>
-
     </form>
 
     <script>
-    // Функция для обновления счетчика
-    function updateSelectionCount() {
-        const selected = document.querySelectorAll('.param-checkbox:checked').length;
-        const total = document.querySelectorAll('.param-checkbox').length;
-        document.getElementById('selectedCount').textContent = selected;
-        document.getElementById('selectAll').checked = selected === total && total > 0;
-    }
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectAllCheckbox = document.getElementById('selectAll');
+        const paramCheckboxes = document.querySelectorAll('.param-checkbox');
+        const selectedCountSpan = document.getElementById('selectedCount');
+        const exportForm = document.getElementById('exportForm');
+        const exportSelectedBtn = document.getElementById('exportSelectedBtn');
 
-    // Функция для выделения/снятия всех чекбоксов
-    function toggleAllCheckboxes(checked) {
-        const checkboxes = document.querySelectorAll('.param-checkbox');
-        checkboxes.forEach(checkbox => {
-            checkbox.checked = checked;
-            // Подсветка строки
-            checkbox.closest('tr').style.backgroundColor = checked ? '#e6f7ff' : '';
+        // Обновляет счетчик выбранных элементов
+        function updateSelectedCount() {
+            const selectedCount = document.querySelectorAll('.param-checkbox:checked').length;
+            selectedCountSpan.textContent = selectedCount;
+            
+            selectAllCheckbox.checked = selectedCount === paramCheckboxes.length && paramCheckboxes.length > 0;
+            selectAllCheckbox.indeterminate = selectedCount > 0 && selectedCount < paramCheckboxes.length;
+            
+            exportSelectedBtn.disabled = selectedCount === 0;
+        }
+
+        // Выделяет/снимает все чекбоксы
+        selectAllCheckbox.addEventListener('change', function() {
+            const isChecked = this.checked;
+            paramCheckboxes.forEach(checkbox => {
+                checkbox.checked = isChecked;
+                checkbox.closest('tr').style.backgroundColor = isChecked ? '#e6f7ff' : '';
+            });
+            updateSelectedCount();
         });
-        updateSelectionCount();
-    }
 
-    // Обработчики кнопок
-    document.getElementById('selectAllBtn').addEventListener('click', () => toggleAllCheckboxes(true));
-    document.getElementById('deselectAllBtn').addEventListener('click', () => toggleAllCheckboxes(false));
+        // Обработчик для отдельных чекбоксов
+        paramCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                this.closest('tr').style.backgroundColor = this.checked ? '#e6f7ff' : '';
+                updateSelectedCount();
+            });
+        });
 
-    // Чекбокс "Выделить все" в заголовке
-    document.getElementById('selectAll').addEventListener('change', function() {
-        toggleAllCheckboxes(this.checked);
-    });
+        // Инициализация
+        updateSelectedCount();
 
-    // Обработчик для отдельных чекбоксов
-    document.querySelectorAll('.param-checkbox').forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            // Подсветка строки
-            this.closest('tr').style.backgroundColor = this.checked ? '#e6f7ff' : '';
-            updateSelectionCount();
+        // Обработчик отправки формы (проверяет, что хотя бы один параметр выбран)
+        exportForm.addEventListener('submit', function(e) {
+            const selectedCount = document.querySelectorAll('.param-checkbox:checked').length;
+            if (selectedCount === 0) {
+                e.preventDefault();
+                alert('Выберите хотя бы один параметр для экспорта!');
+            }
         });
     });
-
-    // Инициализация счетчика
-    updateSelectionCount();
     </script>
-
+</body>
 {% endblock %}
