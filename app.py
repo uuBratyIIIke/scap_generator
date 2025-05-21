@@ -1,6 +1,6 @@
 from enum import Enum
 
-from flask import Flask, render_template, request, redirect, url_for, flash, flash
+from flask import Flask, render_template, request, redirect, url_for, flash, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 from flask import make_response
@@ -40,8 +40,6 @@ class Group(db.Model):
         {'mysql_engine': 'InnoDB'}  # Указываем движок для MySQL
     )
     
-    profiles = db.relationship('Profile', backref='group')
-    
     def __repr__(self):
         return f'<Group {self.name}>'
 
@@ -54,7 +52,10 @@ class Parameter(db.Model):
     value = db.Column(db.Text, nullable=False)
     description = db.Column(db.Text)
     group_id = db.Column(db.Integer, db.ForeignKey('groups.id'))
-    
+    comment = db.Column(db.String(255), nullable=True)
+    title = db.Column(db.String(255), nullable=True)
+    operation = db.Column(db.String(255), nullable=True)
+
     __table_args__ = (
         db.Index('ix_parameters_name', name, mysql_length=255),
         {'mysql_engine': 'InnoDB'}
@@ -72,22 +73,14 @@ class Profile(db.Model):
     name = db.Column(db.String(128), nullable=False)
     description = db.Column(db.Text)
     is_selected = db.Column(db.Boolean, nullable=False, default=False)
-    group_id = db.Column(db.Integer, db.ForeignKey('groups.id'))
-    rule_id = db.Column(db.Integer)
     severity = db.Column(db.String(64), nullable=False)
     title = db.Column(db.String(256))
     content_href = db.Column(db.String(512))
     
     __table_args__ = {'mysql_engine': 'InnoDB'}
     
-    #rule = db.relationship('Parameter', backref='profiles')
-    
     def __repr__(self):
-        return f'<Profile {self.name}>'
-
-# Создаем таблицы в контексте приложения
-#with app.app_context():
-#    db.create_all()  # Создаём таблицы, если они не существуют  
+        return f'<Profile {self.name}>' 
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -149,7 +142,11 @@ def add_parameter():
                             name=row['name'],
                             value=row['value'],
                             description=row.get('description', ''),
-                            group_id=group_id
+                            group_id=group_id,
+                            comment=row.get('comment',''),
+                            title=row.get('title', ''),
+                            operation=row.get('operation','')
+
                         )
                         db.session.add(new_param)
 
@@ -174,6 +171,21 @@ def change_parameter_group(param_id):
     db.session.commit()
     flash('Группа параметра обновлена', 'success')
     return redirect(request.referrer or url_for('index'))
+
+@app.route('/change_parameter_group_ajax', methods=['POST'])
+def change_parameter_group_ajax():
+    data = request.get_json()
+    param_id = data.get('param_id')
+    group_id = data.get('group_id') or None
+    
+    try:
+        param = Parameter.query.get_or_404(param_id)
+        param.group_id = group_id
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/download_template')
 def download_template():
@@ -320,8 +332,6 @@ def add_profile():
                 name=request.form['name'],
                 description=request.form.get('description'),
                 is_selected='is_selected' in request.form,
-                group_id=request.form.get('group_id'),
-                rule_id=request.form.get('rule_id'),
                 severity=request.form['severity'],
                 title=request.form.get('title'),
                 content_href=request.form.get('content_href')
@@ -349,8 +359,6 @@ def edit_profile(id):
             profile.name = request.form['name']
             profile.description = request.form.get('description')
             profile.is_selected = 'is_selected' in request.form
-            profile.group_id = request.form.get('group_id')
-            profile.rule_id = request.form.get('rule_id')
             profile.severity = request.form['severity']
             profile.title = request.form.get('title')
             profile.content_href = request.form.get('content_href')

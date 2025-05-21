@@ -1,41 +1,17 @@
 /* ===== Базовые стили ===== */
-html, body {
-    height: 100%;
-    margin: 0;
-    padding: 0;
+body {
     font-family: Arial, sans-serif;
-    background: #f2f2f2;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+html {
     scroll-behavior: smooth;
 }
 
-/* Центрирование главного контейнера */
-.main-container {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 32px 24px;
-    background: #fff;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.07);
-    border-radius: 12px;
-    /* Для адаптивности */
-    width: 100%;
-    box-sizing: border-box;
-}
-
-/* ===== Стили для контента ===== */
-h1, h2, h3 {
-    text-align: center;
-    margin-top: 0;
-}
-
-.content-with-padding {
-    padding-top: 70px;
-    min-height: calc(100vh - 70px);
-}
-
-/* ===== Формы и поля ===== */
+/* ===== Общие компоненты ===== */
+/* Формы */
 form {
     margin-bottom: 20px;
     display: flex;
@@ -44,150 +20,89 @@ form {
 }
 
 input, textarea, select {
-    padding: 10px;
+    padding: 8px;
     border: 1px solid #ddd;
-    border-radius: 6px;
-    font-size: 1em;
-    background: #fafbfc;
-    transition: border 0.2s;
+    border-radius: 4px;
 }
 
-input:focus, textarea:focus, select:focus {
-    border-color: #2196F3;
-    outline: none;
-}
-
-button[type="submit"], .submit-btn, .action-button {
-    padding: 12px 20px;
+button[type="submit"], .submit-btn {
+    padding: 10px;
     background-color: #4CAF50;
     color: white;
     border: none;
-    border-radius: 6px;
+    border-radius: 4px;
     cursor: pointer;
-    font-size: 1em;
-    transition: background 0.2s;
 }
 
-button[type="submit"]:hover, .submit-btn:hover, .action-button:hover {
+button[type="submit"]:hover, .submit-btn:hover {
     background-color: #45a049;
 }
 
-.cancel-btn {
-    background-color: #f44336;
-    color: white;
-    padding: 12px 20px;
-    margin-left: 10px;
-    border-radius: 6px;
-    border: none;
+/* Списки */
+ul {
+    list-style: none;
+    padding: 0;
 }
 
-.cancel-btn:hover {
-    background-color: #d32f2f;
+li {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+/* Ссылки */
+a {
+    text-decoration: none;
+    color: #2196F3;
+}
+
+a:hover {
+    text-decoration: underline;
 }
 
 /* ===== Таблицы ===== */
+/* Общие стили таблиц */
 .parameters-table, .groups-table {
     width: 100%;
     border-collapse: collapse;
-    margin: 24px 0;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    margin: 20px 0;
+    font-family: Arial, sans-serif;
+    box-shadow: 0 2px 3px rgba(0,0,0,0.1);
 }
 
+/* Заголовки таблиц */
 .parameters-table th, .groups-table th {
     background-color: #4CAF50;
     color: white;
     text-align: left;
-    padding: 14px;
+    padding: 12px;
     border: 1px solid #ddd;
 }
 
+/* Ячейки таблиц */
 .parameters-table td, .groups-table td {
-    padding: 14px;
+    padding: 12px;
     border: 1px solid #ddd;
 }
 
-.parameters-table tr:nth-child(even), .groups-table tr:nth-child(even) {
+/* Чередование строк */
+.parameters-table tr:nth-child(even), 
+.groups-table tr:nth-child(even) {
     background-color: #f2f2f2;
 }
 
-.parameters-table tr:hover, .groups-table tr:hover {
+.parameters-table tr:hover, 
+.groups-table tr:hover {
     background-color: #e6f7ff;
 }
 
-/* ===== Ссылки и кнопки ===== */
-a, .export-button, .group-link {
-    text-decoration: none;
-    color: #2196F3;
-    transition: color 0.2s, background 0.2s;
+/* Специфичные стили для таблицы параметров */
+.parameters-table th:nth-child(4),
+.parameters-table td:nth-child(4) {
+    text-align: center;
+    width: 80px;
 }
 
-a:hover, .export-button:hover, .group-link:hover {
-    color: #0b7dda;
-}
-
-.export-button, .group-link {
-    display: inline-block;
-    padding: 12px 18px;
-    background-color: #2196F3;
-    color: white;
-    border-radius: 6px;
-    margin-right: 10px;
-}
-
-.export-button:hover, .group-link:hover {
-    background-color: #0b7dda;
-    color: #fff;
-}
-
-/* ===== Адаптивность ===== */
-@media (max-width: 900px) {
-    .main-container {
-        max-width: 100%;
-        padding: 16px 4vw;
-    }
-    .parameters-table, .groups-table {
-        font-size: 0.97em;
-    }
-}
-
-@media (max-width: 600px) {
-    .main-container {
-        padding: 8px 2vw;
-        border-radius: 0;
-        box-shadow: none;
-    }
-    .parameters-table, .groups-table th, .parameters-table td, .groups-table td {
-        padding: 8px;
-    }
-    h1, h2, h3 {
-        font-size: 1.2em;
-    }
-}
-
-/* ===== Прочее (навигация, сообщения и т.д.) ===== */
-.flash-messages {
-    position: fixed;
-    top: 80px;
-    right: 16px;
-    z-index: 1000;
-}
-
-.flash-error {
-    background-color: #f44336;
-    color: white;
-    padding: 10px 15px;
-    margin-bottom: 10px;
-    border-radius: 6px;
-}
-
-.flash-success {
-    background-color: #4CAF50;
-    color: white;
-    padding: 10px 15px;
-    margin-bottom: 10px;
-    border-radius: 6px;
-}
-
+/* ===== Кнопки и действия ===== */
 .action-links a {
     margin: 0 5px;
     color: #333;
@@ -198,9 +113,214 @@ a:hover, .export-button:hover, .group-link:hover {
     color: #4CAF50;
 }
 
-/* ===== Центрирование для старых браузеров ===== */
-body > .main-container {
-    margin-left: auto;
-    margin-right: auto;
-    float: none;
+.export-button, .group-link {
+    display: inline-block;
+    padding: 10px 15px;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    margin-right: 10px;
 }
+
+.export-button {
+    background-color: #2196F3;
+}
+
+.export-button:hover {
+    background-color: #0b7dda;
+}
+
+.group-link {
+    background-color: #2196F3;
+}
+
+.add-button, .submit-btn {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.cancel-btn {
+    background-color: #f44336;
+    color: white;
+    padding: 10px 15px;
+    margin-left: 10px;
+    border-radius: 4px;
+}
+
+/* ===== Формы ===== */
+.add-forms {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+.form-section {
+    flex: 1;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+}
+
+.form-section h2 {
+    margin-top: 0;
+    color: #333;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.hint {
+    font-size: 0.9em;
+    color: #666;
+    margin: 5px 0;
+}
+
+/* ===== Навигационное меню ===== */
+.navbar-fixed {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: #2c3e50;
+    padding: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.navbar-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.nav-list {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    height: 50px;
+    align-items: center;
+}
+
+.nav-list li {
+    margin-right: 25px;
+}
+
+.nav-link {
+    color: #ecf0f1;
+    text-decoration: none;
+    font-weight: 500;
+    padding: 8px 12px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.nav-link:hover {
+    background-color: #3498db;
+    color: white;
+}
+
+.nav-link.active {
+    background-color: #2980b9;
+    color: white;
+}
+
+.nav-export {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.nav-export span {
+    color: #bdc3c7;
+    font-size: 0.9em;
+    margin-right: 5px;
+}
+
+/* Иконки */
+.nav-link i {
+    margin-right: 8px;
+    width: 16px;
+    text-align: center;
+}
+
+.nav-export i {
+    margin-right: 5px;
+}
+
+/* ===== Основное содержимое ===== */
+.content-with-padding {
+    padding-top: 70px;
+    min-height: calc(100vh - 70px);
+}
+
+/* ===== Адаптивность ===== */
+@media (max-width: 768px) {
+    .navbar-container {
+        padding: 0 10px;
+    }
+    
+    .nav-list {
+        height: auto;
+        padding: 10px 0;
+        flex-direction: column;
+        display: none;
+        position: absolute;
+        top: 50px;
+        left: 0;
+        right: 0;
+        background-color: #2c3e50;
+    }
+    
+    .nav-list.show {
+        display: flex;
+    }
+    
+    .nav-list li {
+        margin: 5px 0;
+    }
+    
+    .content-with-padding {
+        padding-top: 90px;
+    }
+    
+    .nav-export {
+        display: none;
+    }
+    
+    .mobile-menu-toggle {
+        display: block;
+        color: white;
+        font-size: 1.5em;
+        cursor: pointer;
+        padding: 10px;
+    }
+    
+    .nav-link i {
+        margin-right: 6px;
+    }
+    
+    .add-forms {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+.group-form {
+        display: inline;
+        margin: 0;
+        padding: 0;
+    }
+    .top-actions {
+        margin-bottom: 15px;
+    }
+}
+

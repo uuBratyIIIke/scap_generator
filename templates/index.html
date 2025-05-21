@@ -1,3 +1,4 @@
+
 {% extends "base.html" %}
 
 {% block title %}Название страницы{% endblock %}
@@ -46,18 +47,19 @@
                     <td>{{ param.comment or '' }}</td>
                     <td>{{ param.title or '' }}</td>
                     <td>
-                        <form method="post" action="{{ url_for('change_parameter_group', param_id=param.id) }}">
-                            <select name="group_id" onchange="this.form.submit()" class="form-control" style="min-width:120px;">
-                                <option value="">-- Без группы --</option>
-                                {% for group in groups %}
-                                    <option value="{{ group.id }}" {% if param.group_id == group.id %}selected{% endif %}>
-                                        {{ group.name }}
-                                    </option>
-                                {% endfor %}
-                            </select>
-                        </form>
+                        <select name="group_id" 
+                                data-param-id="{{ param.id }}" 
+                                class="form-control group-select" 
+                                style="min-width:120px;">
+                            <option value="">-- Без группы --</option>
+                            {% for group in groups %}
+                                <option value="{{ group.id }}" {% if param.group_id == group.id %}selected{% endif %}>
+                                    {{ group.name }}
+                                </option>
+                            {% endfor %}
+                        </select>
                     </td>
-                    <td class="action-links">
+                                        <td class="action-links">
                         <a href="{{ url_for('edit_parameter', id=param.id) }}" title="Редактировать">✏️</a>
                         <a href="{{ url_for('delete_parameter', id=param.id) }}" title="Удалить" onclick="return confirm('Вы уверены?')">❌</a>
                     </td>
@@ -73,55 +75,94 @@
         </div>
     </form>
 
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const selectAllCheckbox = document.getElementById('selectAll');
-        const paramCheckboxes = document.querySelectorAll('.param-checkbox');
-        const selectedCountSpan = document.getElementById('selectedCount');
-        const exportForm = document.getElementById('exportForm');
-        const exportSelectedBtn = document.getElementById('exportSelectedBtn');
+   <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // --- Экспорт выбранных параметров ---
+            const selectAllCheckbox = document.getElementById('selectAll');
+            const paramCheckboxes = document.querySelectorAll('.param-checkbox');
+            const selectedCountSpan = document.getElementById('selectedCount');
+            const exportForm = document.getElementById('exportForm');
+            const exportSelectedBtn = document.getElementById('exportSelectedBtn');
 
-        // Обновляет счетчик выбранных элементов
-        function updateSelectedCount() {
-            const selectedCount = document.querySelectorAll('.param-checkbox:checked').length;
-            selectedCountSpan.textContent = selectedCount;
-            
-            selectAllCheckbox.checked = selectedCount === paramCheckboxes.length && paramCheckboxes.length > 0;
-            selectAllCheckbox.indeterminate = selectedCount > 0 && selectedCount < paramCheckboxes.length;
-            
-            exportSelectedBtn.disabled = selectedCount === 0;
-        }
+            // Функция обновления счетчика выбранных
+            function updateSelectedCount() {
+                const selectedCount = document.querySelectorAll('.param-checkbox:checked').length;
+                selectedCountSpan.textContent = selectedCount;
+                
+                selectAllCheckbox.checked = selectedCount === paramCheckboxes.length && paramCheckboxes.length > 0;
+                selectAllCheckbox.indeterminate = selectedCount > 0 && selectedCount < paramCheckboxes.length;
+                
+                exportSelectedBtn.disabled = selectedCount === 0;
+            }
 
-        // Выделяет/снимает все чекбоксы
-        selectAllCheckbox.addEventListener('change', function() {
-            const isChecked = this.checked;
-            paramCheckboxes.forEach(checkbox => {
-                checkbox.checked = isChecked;
-                checkbox.closest('tr').style.backgroundColor = isChecked ? '#e6f7ff' : '';
-            });
-            updateSelectedCount();
-        });
-
-        // Обработчик для отдельных чекбоксов
-        paramCheckboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                this.closest('tr').style.backgroundColor = this.checked ? '#e6f7ff' : '';
+            // Обработчик "выбрать все"
+            selectAllCheckbox.addEventListener('change', function() {
+                const isChecked = this.checked;
+                paramCheckboxes.forEach(checkbox => {
+                    checkbox.checked = isChecked;
+                    checkbox.closest('tr').style.backgroundColor = isChecked ? '#e6f7ff' : '';
+                });
                 updateSelectedCount();
             });
-        });
 
-        // Инициализация
-        updateSelectedCount();
+            // Обработчик для отдельных чекбоксов
+            paramCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    this.closest('tr').style.backgroundColor = this.checked ? '#e6f7ff' : '';
+                    updateSelectedCount();
+                });
+            });
 
-        // Обработчик отправки формы (проверяет, что хотя бы один параметр выбран)
-        exportForm.addEventListener('submit', function(e) {
-            const selectedCount = document.querySelectorAll('.param-checkbox:checked').length;
-            if (selectedCount === 0) {
-                e.preventDefault();
-                alert('Выберите хотя бы один параметр для экспорта!');
-            }
+            // Инициализация состояния кнопки и счетчика
+            updateSelectedCount();
+
+            // Проверка при отправке формы экспорта
+            exportForm.addEventListener('submit', function(e) {
+                const selectedCount = document.querySelectorAll('.param-checkbox:checked').length;
+                if (selectedCount === 0) {
+                    e.preventDefault();
+                    alert('Выберите хотя бы один параметр для экспорта!');
+                }
+            });
+
+            // --- AJAX смена группы ---
+            // Для каждого выпадающего списка групп
+            document.querySelectorAll('.group-select').forEach(function(select) {
+                select.addEventListener('change', function() {
+                    const paramId = this.getAttribute('data-param-id');
+                    const groupId = this.value;
+
+                    fetch('{{ url_for("change_parameter_group_ajax") }}', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            param_id: paramId,
+                            group_id: groupId
+                        })
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('HTTP error ' + response.status);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            this.style.backgroundColor = '#e6ffe6';
+                            setTimeout(() => { this.style.backgroundColor = ''; }, 800);
+                        } else {
+                            alert('Ошибка при смене группы: ' + (data.error || 'Неизвестная ошибка'));
+                        }
+                    })
+                    .catch(error => {
+                        alert('Ошибка при смене группы: ' + error);
+                    });
+                });
+            });
         });
-    });
     </script>
-</body>
+
+    </body>
 {% endblock %}
