@@ -36,6 +36,17 @@
                 <label for="description">Описание:</label>
                 <textarea id="description" name="description"></textarea>
             </div>
+
+
+            <div class="form-group">
+            <label for="operation">Операция:</label>
+                <select name="operation" id="operation" class="form-control" required>
+                    {% for op in operations %}
+                        <option value="{{ op.value }}">{{ op.value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
             
             <button type="submit" class="submit-btn">Добавить</button>
         </form>

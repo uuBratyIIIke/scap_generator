@@ -24,7 +24,10 @@
                     <th>ID</th>
                     <th>name</th>
                     <th>value</th>
+                    <th>operation</th>
                     <th>description</th>
+                    <th>comment</th>
+                    <th>title</th>
                     <th>group_name</th>
                     <th>Действия</th>
                 </tr>
@@ -38,13 +41,21 @@
                     <td>{{ param.id }}</td>
                     <td>{{ param.name }}</td>
                     <td>{{ param.value }}</td>
+                    <td>{{ param.operation.value }}</td>
                     <td>{{ param.description or '' }}</td>
+                    <td>{{ param.comment or '' }}</td>
+                    <td>{{ param.title or '' }}</td>
                     <td>
-                        {% if param.group.name %}
-                            {{ param.group.name }}
-                        {% else %}
-                            —
-                        {% endif %}
+                        <form method="post" action="{{ url_for('change_parameter_group', param_id=param.id) }}">
+                            <select name="group_id" onchange="this.form.submit()" class="form-control" style="min-width:120px;">
+                                <option value="">-- Без группы --</option>
+                                {% for group in groups %}
+                                    <option value="{{ group.id }}" {% if param.group_id == group.id %}selected{% endif %}>
+                                        {{ group.name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </form>
                     </td>
                     <td class="action-links">
                         <a href="{{ url_for('edit_parameter', id=param.id) }}" title="Редактировать">✏️</a>

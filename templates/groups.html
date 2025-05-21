@@ -5,7 +5,8 @@
 {% block content %}
 <body>
     <h1>Группы параметров</h1>
-    
+
+    <a href="{{ url_for('export_to_xccdf_file') }}" class="export-button">Экспорт XCCDF</a>
     <a href="{{ url_for('add_group') }}" class="export-button">+ Добавить группу</a>
     
     <table class="groups-table">
