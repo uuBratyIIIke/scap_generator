@@ -28,21 +28,17 @@ class OperationEnum(str, Enum):
     LESS_THAN = "less than"
     PATTERN_MATCH = "pattern match"
 
+groups_to_profile = db.Table(
+    'groups_to_profile',
+    db.Column('id', db.Integer, primary_key=True),
+    db.Column('profile_id', db.Integer, db.ForeignKey('profile.id'), nullable=False),
+    db.Column('group_id', db.Integer, db.ForeignKey('groups.id'), nullable=False)
+)
+
 class Group(db.Model):
     __tablename__ = 'groups'
-    
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)  # Явно указываем autoincrement
-    name = db.Column(db.String(100), unique=True, nullable=False)
-    
-    # Для MySQL может потребоваться указать длину индекса
-    __table_args__ = (
-        db.Index('ix_groups_name', name, mysql_length=100),
-        {'mysql_engine': 'InnoDB'}  # Указываем движок для MySQL
-    )
-    
-    def __repr__(self):
-        return f'<Group {self.name}>'
-
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False)
 
 class Parameter(db.Model):
     __tablename__ = 'parameter'
@@ -68,19 +64,18 @@ class Parameter(db.Model):
 
 class Profile(db.Model):
     __tablename__ = 'profile'
-    
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)  # Явно указываем autoincrement
-    name = db.Column(db.String(128), nullable=False)
-    description = db.Column(db.Text)
-    is_selected = db.Column(db.Boolean, nullable=False, default=False)
-    severity = db.Column(db.String(64), nullable=False)
-    title = db.Column(db.String(256))
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String, nullable=False)
+    description = db.Column(db.String)
+    is_selected = db.Column(db.Boolean)
+    severity = db.Column(db.String(64))
     content_href = db.Column(db.String(512))
-    
-    __table_args__ = {'mysql_engine': 'InnoDB'}
-    
-    def __repr__(self):
-        return f'<Profile {self.name}>' 
+    # связь многие-ко-многим
+    groups = db.relationship(
+        'Group',
+        secondary=groups_to_profile,
+        backref=db.backref('profiles', lazy='dynamic')
+    )
 
 def allowed_file(filename):
     return '.' in filename and \
@@ -322,7 +317,23 @@ def export_to_file():
 @app.route('/profiles')
 def profiles():
     profiles = Profile.query.all()
-    return render_template('profiles.html', profiles=profiles)
+    groups = Group.query.all()
+    return render_template('profiles.html', profiles=profiles, groups=groups)
+
+@app.route('/update_profile_groups', methods=['POST'])
+def update_profile_groups():
+    data = request.get_json()
+    profile_id = data.get('profile_id')
+    group_ids = data.get('group_ids', [])
+
+    profile = Profile.query.get(profile_id)
+    if not profile:
+        return jsonify({'success': False, 'error': 'Профиль не найден'}), 404
+
+    # Обновляем связи в таблице пересечений
+    profile.groups = Group.query.filter(Group.id.in_(group_ids)).all()
+    db.session.commit()
+    return jsonify({'success': True})
 
 @app.route('/profiles/add', methods=['GET', 'POST'])
 def add_profile():
