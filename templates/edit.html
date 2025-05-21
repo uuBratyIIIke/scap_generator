@@ -15,25 +15,47 @@
         <label for="value">Значение:</label>
         <input type="text" id="value" name="value" value="{{ parameter.value }}" required>
     </div>
-    
+
+    <div class="form-group">
+        <label for="operation">Операция:</label>
+        <select id="operation" name="operation" class="form-control" required>
+            {% for op in operations %}
+                <option value="{{ op.value }}"
+                    {% if parameter.operation.value == op.value %}selected{% endif %}>
+                    {{ op.value }}
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+
     <div class="form-group">
         <label for="group_id">Группа:</label>
         <select id="group_id" name="group_id" class="form-control">
             <option value="">-- Без группы --</option>
             {% for group in groups %}
-            <option value="{{ group.id }}" 
+            <option value="{{ group.id }}"
                     {% if parameter.group_id == group.id %}selected{% endif %}>
                 {{ group.name }}
             </option>
             {% endfor %}
         </select>
     </div>
-    
+
     <div class="form-group">
         <label for="description">Описание:</label>
         <textarea id="description" name="description">{{ parameter.description or '' }}</textarea>
     </div>
-    
+
+    <div class="form-group">
+        <label for="comment">Комментарий:</label>
+        <textarea id="comment" name="comment">{{ parameter.comment or '' }}</textarea>
+    </div>
+
+    <div class="form-group">
+        <label for="title">Заголовок:</label>
+        <input type="text" id="title" name="title" value="{{ parameter.title or '' }}">
+    </div>
+
     <button type="submit" class="submit-btn">Сохранить</button>
     <a href="{{ url_for('index') }}" class="cancel-btn">Отмена</a>
 </form>

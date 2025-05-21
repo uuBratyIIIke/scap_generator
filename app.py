@@ -1,4 +1,6 @@
-from flask import Flask, render_template, request, redirect, url_for
+from enum import Enum
+
+from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
 from flask import make_response
@@ -14,8 +16,16 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['SECRET_KEY'] = 'secretkey'
 
 db = SQLAlchemy(app)
+
+class OperationEnum(str, Enum):
+    EQUALS = "equals"
+    NOT_EQUAL = "not equal"
+    GREATER_THAN = "greater than"
+    LESS_THAN = "less than"
+    PATTERN_MATCH = "pattern match"
 
 class Group(db.Model):
     __tablename__ = 'groups'  # Явно указываем имя таблицы
@@ -26,15 +36,29 @@ class Group(db.Model):
     def __repr__(self):
         return f'<Group {self.name}>'
 
+
 class Parameter(db.Model):
+    __tablename__ = 'parameter'
+
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.Text, unique=True, nullable=False)
+    name = db.Column(db.String(128), nullable=False, unique=True)
     value = db.Column(db.Text, nullable=False)
     description = db.Column(db.Text)
-    group_id = db.Column(db.Integer, db.ForeignKey('groups.id'))  # Внешний ключ    
+    group_id = db.Column(db.Integer, db.ForeignKey('groups.id'))
+    comment = db.Column(db.Text)
+    title = db.Column(db.Text)
+    operation = db.Column(
+        db.Enum(
+            OperationEnum,
+            values_callable=lambda x: [e.value for e in OperationEnum]  # Используем значения, а не имена
+        ),
+        nullable=False,
+        default=OperationEnum.EQUALS
+    )
 
-    group = db.relationship('Group', backref='parameters')  # Связь для ORM
-    
+    # Опционально: связь с группой (если нужен доступ из объекта)
+    group = db.relationship('Group', backref='parameters')
+
     def __repr__(self):
         return f'<Parameter {self.name}>'
 
@@ -69,31 +93,39 @@ def allowed_file(filename):
 
 @app.route('/')
 def index():
-    parameters = Parameter.query.options(db.joinedload(Parameter.group)).all()
-    return render_template('index.html', parameters=parameters)
+    parameters = Parameter.query.all()
+    groups = Group.query.all()
+    return render_template('index.html', parameters=parameters, groups=groups)
 
 @app.route('/add', methods=['GET', 'POST'])
 def add_parameter():
     all_groups = Group.query.order_by(Group.name).all()
+    operations = list(OperationEnum)
 
     if request.method == 'POST':
         # Обработка обычной формы
         if 'name' in request.form:
             try:
+                operation = OperationEnum(request.form["operation"])
                 new_param = Parameter(
                     name=request.form['name'],
                     value=request.form['value'],
                     description=request.form.get('description', ''),
-                    group_id=request.form.get('group_id') or None
+                    comment=request.form.get('comment', ''),    # НОВОЕ ПОЛЕ
+                    title=request.form.get('title', ''),        # НОВОЕ ПОЛЕ
+                    group_id=request.form.get('group_id') or None,
+                    operation=operation
                 )
                 db.session.add(new_param)
                 db.session.commit()
                 flash('Параметр успешно добавлен', 'success')
                 return redirect(url_for('index'))
+            except ValueError:
+                flash('Недопустимое значение операции', 'error')
             except Exception as e:
                 db.session.rollback()
                 flash(f'Ошибка при добавлении: {str(e)}', 'error')
-        
+
         # Обработка загрузки CSV
         elif 'csv_file' in request.files:
             file = request.files['csv_file']
@@ -127,10 +159,19 @@ def add_parameter():
                     db.session.rollback()
                     flash(f'Ошибка при импорте CSV: {str(e)}', 'error')
     
-    return render_template('add.html', groups=all_groups)
+    return render_template("add.html", groups=all_groups, operations=operations)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() == 'csv'
+
+@app.route('/change_parameter_group/<int:param_id>', methods=['POST'])
+def change_parameter_group(param_id):
+    group_id = request.form.get('group_id') or None
+    param = Parameter.query.get_or_404(param_id)
+    param.group_id = group_id
+    db.session.commit()
+    flash('Группа параметра обновлена', 'success')
+    return redirect(request.referrer or url_for('index'))
 
 @app.route('/download_template')
 def download_template():
@@ -154,6 +195,7 @@ def delete_parameter(id):
 def edit_parameter(id):
     parameter = Parameter.query.get_or_404(id)
     all_groups = Group.query.order_by(Group.name).all()  # Получаем все группы с сортировкой
+    operations = list(OperationEnum)  # Или другой источник данных
 
     if request.method == 'POST':
 
@@ -165,14 +207,14 @@ def edit_parameter(id):
         parameter.value = request.form['value']
         parameter.description = request.form.get('description', '')
         parameter.group_id = request.form.get('group_id') or None  # Обрабатываем пустое значение
+        parameter.operation = request.form.get('operation', '')
         db.session.commit()
         return redirect(url_for('index'))
 
-    return render_template('edit.html', parameter=parameter, groups=all_groups)
+    return render_template('edit.html', parameter=parameter, groups=all_groups, operations=operations)
 
-@app.route('/export', methods=['POST'])
+@app.route('/export', methods=['POST', 'GET'])
 def export_to_file():
-    selected_ids = request.form.get('selected_ids', '').split(',')
 
     # Получаем только выбранные параметры
     parameters = db.session.query(
@@ -180,11 +222,26 @@ def export_to_file():
         Group.name.label('group_name')
     ).outerjoin(
         Group, Parameter.group_id == Group.id
-    ).filter(
-        Parameter.id.in_(selected_ids)
     ).all()
 
-    file_content = ""
+    file_content = """<?xml version="1.0" encoding="UTF-8"?>
+<oval_definitions 
+  xmlns="http://oval.mitre.org/XMLSchema/oval-definitions-5"
+  xmlns:oval="http://oval.mitre.org/XMLSchema/oval-common-5"
+  xmlns:ind="http://oval.mitre.org/XMLSchema/oval-definitions-5#independent"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://oval.mitre.org/XMLSchema/oval-definitions-5 
+    https://oval.mitre.org/language/version5.10.1/oval-definitions-schema.xsd 
+    http://oval.mitre.org/XMLSchema/oval-definitions-5#independent 
+    https://oval.mitre.org/language/version5.10.1/independent/oval-ind-definitions-schema.xsd">
+
+  <generator>
+    <oval:product_name>Custom PostgreSQL Check</oval:product_name>
+    <oval:schema_version>5.10.1</oval:schema_version>
+    <oval:timestamp>2025-04-08T12:00:00</oval:timestamp>
+  </generator>
+
+    """
     
     #Формируем блок defenitions
     file_content += "<definitions>\n" 
@@ -193,8 +250,8 @@ def export_to_file():
         file_content += f"""
     <definition id=\"oval:{group_name or "custom"}:def:{param.id}\" version=\"1\" class=\"compliance\">
         <metadata>
-            <title>___</title>
-            <description>___</description>
+            <title>{param.comment}</title>
+            <description>{param.description}</description>
         </metadata>
         <criteria>
             <criterion test_ref=\"oval:{group_name or "custom"}:tst:{param.id}\"/>
@@ -207,7 +264,7 @@ def export_to_file():
     file_content += "<tests>\n"
     for param, group_name in parameters:
         file_content += f"""
-    <ind:textfilecontent54_test id=\"oval:{group_name or "custom"}:tst:{param.id}\" version=\"1\" check=\"all\"  comment=\"____\">
+    <ind:textfilecontent54_test id=\"oval:{group_name or "custom"}:tst:{param.id}\" version=\"1\" check=\"all\"  comment=\"{param.comment}\">
       <ind:object object_ref=\"oval:{group_name or "custom"}:obj:{param.id}\" />
       <ind:state state_ref=\"oval:{group_name or "custom"}:ste:{param.id}\" />
     </ind:textfilecontent54_test>\n\n"""
@@ -221,7 +278,7 @@ def export_to_file():
         file_content += f"""
     <ind:textfilecontent54_object id=\"oval:{group_name or "custom"}:obj:{param.id}\" version=\"1\">
         <ind:filepath>/mnt/d/Studying/Pg_conf_file/pg_conf_file_04/postgresql.conf</ind:filepath>
-        <ind:pattern operation=\"pattern match\">{param.name}=\s*'{param.value}'?</ind:pattern>
+        <ind:pattern operation=\"pattern match\">^{param.name}\s*=\s*'?(\w+)'?</ind:pattern>
         <ind:instance datatype=\"int\" operation=\"greater than or equal\">1</ind:instance>
     </ind:textfilecontent54_object>\n\n"""
 
@@ -233,16 +290,16 @@ def export_to_file():
     for param, group_name in parameters:
         file_content += f"""
     <ind:textfilecontent54_state id=\"oval:{group_name or "custom"}:ste:{param.id}\" version=\"1\">
-        <ind:text operation=\"pattern match\">{param.value}'?</ind:text>
+        <ind:text operation=\"{param.operation}\">^{param.name}\s*=\s*'?({param.value})'?</ind:text>
     </ind:textfilecontent54_state>\n\n"""
 
-    file_content += "</states>"
+    file_content += "</states> </oval_definitions>"
 
     # Создаем ответ с файлом
     response = make_response(file_content)
-    response.headers['Content-Disposition'] = 'attachment; filename=parameters_export.xml'
+    response.headers['Content-Disposition'] = 'attachment; filename=generated_xccdf.xml'
     response.headers['Content-type'] = 'text/plain'
-    
+
     return response
 
 
@@ -280,7 +337,6 @@ def profiles():
     return render_template('profiles.html', profiles=all_profiles, groups=groups, parameters=parameters)
 
 @app.route('/groups', methods=['GET', 'POST'])
-@app.route('/groups')
 def groups():
     if request.method == 'POST':
         group_name = request.form.get('group_name')
@@ -338,7 +394,7 @@ def export_to_xccdf_file():
     <Rule id=\"xccdf_org.postgresql_rule_{param.Parameter.name}\" severity=\"high\">
         <title>{param.Parameter.description}</title>
         <check system="http://oval.mitre.org/XMLSchema/oval-definitions-5">
-            <check-content-ref href=\"check_postgresql_ssl.xml\" name=\"oval:{group.name or "custom"}:def:{param.Parameter.id}\"/>
+            <check-content-ref href=\"generated_oval.xml\" name=\"oval:{group.name or "custom"}:def:{param.Parameter.id}\"/>
         </check>
     </Rule>\n
 """
