@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Добавление профиля{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Добавление нового профиля</h1>
+        <a href="{{ url_for('profiles') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Назад к списку
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('add_profile') }}">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Название профиля *</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Описание</label>
+                            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="severity" class="form-label">Уровень важности *</label>
+                            <select class="form-select" id="severity" name="severity" required>
+                                <option value="" disabled selected>Выберите уровень</option>
+                                <option value="high">Высокий</option>
+                                <option value="medium">Средний</option>
+                                <option value="low">Низкий</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="mb-3">
+                            <label for="group_id" class="form-label">Группа</label>
+                            <select class="form-select" id="group_id" name="group_id">
+                                <option value="" selected>-- Не выбрана --</option>
+                                {% for group in groups %}
+                                <option value="{{ group.id }}">{{ group.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="rule_id" class="form-label">Правило</label>
+                            <select class="form-select" id="rule_id" name="rule_id">
+                                <option value="" selected>-- Не выбрано --</option>
+                                {% for param in parameters %}
+                                <option value="{{ param.id }}">{{ param.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="is_selected" name="is_selected">
+                            <label class="form-check-label" for="is_selected">Активный профиль</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Сохранить
+                    </button>
+                    <a href="{{ url_for('profiles') }}" class="btn btn-outline-secondary">
+                        Отмена
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
