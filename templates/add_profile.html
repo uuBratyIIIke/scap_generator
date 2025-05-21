@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Добавить профиль{% endblock %}
+{% block content %}
+<h1>Добавить профиль</h1>
+<form method="post">
+    <div class="mb-3">
+        <label for="name" class="form-label">Имя профиля</label>
+        <input type="text" class="form-control" id="name" name="name" required>
+    </div>
+    <div class="mb-3">
+        <label for="title" class="form-label">Заголовок</label>
+        <input type="text" class="form-control" id="title" name="title">
+    </div>
+    <div class="mb-3">
+        <label for="content_href" class="form-label">Content Href</label>
+        <input type="text" class="form-control" id="content_href" name="content_href">
+    </div>
+    <div class="mb-3">
+        <label for="severity" class="form-label">Severity</label>
+        <select class="form-select" id="severity" name="severity">
+            <option value="low">low</option>
+            <option value="medium">medium</option>
+            <option value="high">high</option>
+            <option value="unknown">unknown</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label for="description" class="form-label">Описание</label>
+        <textarea class="form-control" id="description" name="description"></textarea>
+    </div>
+    <div class="mb-3 form-check">
+        <input type="checkbox" class="form-check-input" id="is_selected" name="is_selected">
+        <label class="form-check-label" for="is_selected">Выбран</label>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Группы</label>
+        <div class="dropdown">
+            <button class="btn btn-outline-primary dropdown-toggle" type="button"
+                    id="groupsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <span id="selectedGroupsText">Выбрать группы</span>
+            </button>
+            <ul class="dropdown-menu p-2" aria-labelledby="groupsDropdown" style="min-width:220px; max-height:260px; overflow-y:auto;">
+                {% for group in groups %}
+                <li>
+                    <div class="form-check">
+                        <input class="form-check-input group-checkbox"
+                               type="checkbox"
+                               name="group_ids"
+                               value="{{ group.id }}"
+                               id="group-{{ group.id }}">
+                        <label class="form-check-label" for="group-{{ group.id }}">
+                            {{ group.name }}
+                        </label>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    <button type="submit" class="btn btn-success">Сохранить</button>
+    <a href="{{ url_for('profiles') }}" class="btn btn-secondary">Отмена</a>
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const checkboxes = document.querySelectorAll('.group-checkbox');
+    const selectedGroupsText = document.getElementById('selectedGroupsText');
+    function updateSelectedGroupsText() {
+        const checked = Array.from(checkboxes).filter(cb => cb.checked).map(cb =>
+            cb.parentElement.textContent.trim()
+        );
+        selectedGroupsText.textContent = checked.length > 0 ? checked.join(', ') : 'Выбрать группы';
+    }
+    checkboxes.forEach(cb => cb.addEventListener('change', updateSelectedGroupsText));
+    updateSelectedGroupsText();
+});
+</script>
+{% endblock %}

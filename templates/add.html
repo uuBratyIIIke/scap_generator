@@ -1,6 +1,76 @@
-<form method="POST">
-    <input type="text" name="name" placeholder="Название" required>
-    <input type="text" name="value" placeholder="Значение" required>
-    <textarea name="description" placeholder="Описание"></textarea>
-    <button type="submit">Добавить</button>
-</form>
+{% extends "base.html" %}
+
+{% block title %}Добавление параметра{% endblock %}
+
+{% block content %}
+<h1>Добавить параметры</h1>
+
+<div class="add-forms">
+    <!-- Форма для ручного добавления -->
+    <div class="form-section">
+        <h2>Добавить вручную</h2>
+        <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="form_type" value="manual">
+            
+            <div class="form-group">
+                <label for="name">Название:</label>
+                <input type="text" id="name" name="name" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="value">Значение:</label>
+                <input type="text" id="value" name="value" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="group_id">Группа:</label>
+                <select id="group_id" name="group_id" class="form-control">
+                    <option value="">-- Без группы --</option>
+                    {% for group in groups %}
+                    <option value="{{ group.id }}">{{ group.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="description">Описание:</label>
+                <textarea id="description" name="description"></textarea>
+            </div>
+
+
+            <div class="form-group">
+            <label for="operation">Операция:</label>
+                <select name="operation" id="operation" class="form-control" required>
+                    {% for op in operations %}
+                        <option value="{{ op.value }}">{{ op.value }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            
+            <button type="submit" class="submit-btn">Добавить</button>
+        </form>
+    </div>
+    
+    <!-- Форма для загрузки CSV -->
+    <div class="form-section">
+        <h2>Импорт из CSV</h2>
+        <form method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="form_type" value="csv">
+            
+            <div class="form-group">
+                <label for="csv_file">CSV файл:</label>
+                <input type="file" id="csv_file" name="csv_file" accept=".csv" required>
+                <p class="hint">
+                    Формат CSV: name,value,description,group<br>
+                    <a href="{{ url_for('download_template') }}">Скачать шаблон</a>
+                </p>
+            </div>
+            
+            <button type="submit" class="submit-btn">Импортировать</button>
+        </form>
+    </div>
+</div>
+
+<a href="{{ url_for('index') }}" class="cancel-btn">← Назад к списку</a>
+{% endblock %}

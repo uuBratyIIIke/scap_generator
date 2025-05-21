@@ -1,3 +1,4 @@
+/* ===== Базовые стили ===== */
 body {
     font-family: Arial, sans-serif;
     max-width: 800px;
@@ -5,10 +6,39 @@ body {
     padding: 20px;
 }
 
-form {
-    margin-bottom: 20px;
+html {
+    scroll-behavior: smooth;
 }
 
+/* ===== Общие компоненты ===== */
+/* Формы */
+form {
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+input, textarea, select {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+button[type="submit"], .submit-btn {
+    padding: 10px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+button[type="submit"]:hover, .submit-btn:hover {
+    background-color: #45a049;
+}
+
+/* Списки */
 ul {
     list-style: none;
     padding: 0;
@@ -19,8 +49,19 @@ li {
     border-bottom: 1px solid #eee;
 }
 
-/* Основные стили таблицы */
-.parameters-table {
+/* Ссылки */
+a {
+    text-decoration: none;
+    color: #2196F3;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* ===== Таблицы ===== */
+/* Общие стили таблиц */
+.parameters-table, .groups-table {
     width: 100%;
     border-collapse: collapse;
     margin: 20px 0;
@@ -28,8 +69,8 @@ li {
     box-shadow: 0 2px 3px rgba(0,0,0,0.1);
 }
 
-/* Стили заголовков */
-.parameters-table th {
+/* Заголовки таблиц */
+.parameters-table th, .groups-table th {
     background-color: #4CAF50;
     color: white;
     text-align: left;
@@ -37,25 +78,33 @@ li {
     border: 1px solid #ddd;
 }
 
-/* Стили ячеек */
-.parameters-table td {
+/* Ячейки таблиц */
+.parameters-table td, .groups-table td {
     padding: 12px;
     border: 1px solid #ddd;
 }
 
-/* Чередование цветов строк */
-.parameters-table tr:nth-child(even) {
+/* Чередование строк */
+.parameters-table tr:nth-child(even), 
+.groups-table tr:nth-child(even) {
     background-color: #f2f2f2;
 }
 
-.parameters-table tr:hover {
+.parameters-table tr:hover, 
+.groups-table tr:hover {
     background-color: #e6f7ff;
 }
 
-/* Стили для кнопок действий */
+/* Специфичные стили для таблицы параметров */
+.parameters-table th:nth-child(4),
+.parameters-table td:nth-child(4) {
+    text-align: center;
+    width: 80px;
+}
+
+/* ===== Кнопки и действия ===== */
 .action-links a {
     margin: 0 5px;
-    text-decoration: none;
     color: #333;
     font-size: 1.2em;
 }
@@ -63,3 +112,215 @@ li {
 .action-links a:hover {
     color: #4CAF50;
 }
+
+.export-button, .group-link {
+    display: inline-block;
+    padding: 10px 15px;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    margin-right: 10px;
+}
+
+.export-button {
+    background-color: #2196F3;
+}
+
+.export-button:hover {
+    background-color: #0b7dda;
+}
+
+.group-link {
+    background-color: #2196F3;
+}
+
+.add-button, .submit-btn {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.cancel-btn {
+    background-color: #f44336;
+    color: white;
+    padding: 10px 15px;
+    margin-left: 10px;
+    border-radius: 4px;
+}
+
+/* ===== Формы ===== */
+.add-forms {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+.form-section {
+    flex: 1;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+}
+
+.form-section h2 {
+    margin-top: 0;
+    color: #333;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.hint {
+    font-size: 0.9em;
+    color: #666;
+    margin: 5px 0;
+}
+
+/* ===== Навигационное меню ===== */
+.navbar-fixed {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: #2c3e50;
+    padding: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.navbar-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.nav-list {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    height: 50px;
+    align-items: center;
+}
+
+.nav-list li {
+    margin-right: 25px;
+}
+
+.nav-link {
+    color: #ecf0f1;
+    text-decoration: none;
+    font-weight: 500;
+    padding: 8px 12px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.nav-link:hover {
+    background-color: #3498db;
+    color: white;
+}
+
+.nav-link.active {
+    background-color: #2980b9;
+    color: white;
+}
+
+.nav-export {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.nav-export span {
+    color: #bdc3c7;
+    font-size: 0.9em;
+    margin-right: 5px;
+}
+
+/* Иконки */
+.nav-link i {
+    margin-right: 8px;
+    width: 16px;
+    text-align: center;
+}
+
+.nav-export i {
+    margin-right: 5px;
+}
+
+/* ===== Основное содержимое ===== */
+.content-with-padding {
+    padding-top: 70px;
+    min-height: calc(100vh - 70px);
+}
+
+/* ===== Адаптивность ===== */
+@media (max-width: 768px) {
+    .navbar-container {
+        padding: 0 10px;
+    }
+    
+    .nav-list {
+        height: auto;
+        padding: 10px 0;
+        flex-direction: column;
+        display: none;
+        position: absolute;
+        top: 50px;
+        left: 0;
+        right: 0;
+        background-color: #2c3e50;
+    }
+    
+    .nav-list.show {
+        display: flex;
+    }
+    
+    .nav-list li {
+        margin: 5px 0;
+    }
+    
+    .content-with-padding {
+        padding-top: 90px;
+    }
+    
+    .nav-export {
+        display: none;
+    }
+    
+    .mobile-menu-toggle {
+        display: block;
+        color: white;
+        font-size: 1.5em;
+        cursor: pointer;
+        padding: 10px;
+    }
+    
+    .nav-link i {
+        margin-right: 6px;
+    }
+    
+    .add-forms {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+.group-form {
+        display: inline;
+        margin: 0;
+        padding: 0;
+    }
+    .top-actions {
+        margin-bottom: 15px;
+    }
+}
+

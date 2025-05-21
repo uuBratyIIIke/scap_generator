@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% block title %}{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<body>
+<!-- Фиксированное меню -->
+<header class="navbar-fixed">
+    <div class="navbar-container">
+        <nav>
+            <ul class="nav-list">
+
+                <li>
+                    <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
+                            <i class="fas fa-list"></i> Параметры
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('groups') }}" class="nav-link {% if request.endpoint == 'groups' %}active{% endif %}">
+                            <i class="fas fa-layer-group"></i> Группы
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('profiles') }}">
+                            <i class="fas fa-id-card"></i> Профили
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Основное содержимое с отступом под меню -->
+    <main class="content-with-padding">
+        {% block content %}{% endblock %}
+    </main>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const select = document.getElementById('group_id');
+        
+        // Добавляем поиск при вводе текста
+        select.addEventListener('keydown', function(e) {
+            const searchChar = String.fromCharCode(e.keyCode).toLowerCase();
+            const options = this.options;
+            
+            for (let i = 0; i < options.length; i++) {
+                if (options[i].text.toLowerCase().indexOf(searchChar) === 0) {
+                    this.selectedIndex = i;
+                    break;
+                }
+            }
+        });
+    });
+    </script>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
+
+</body>
+</html>
