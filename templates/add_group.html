@@ -12,7 +12,7 @@
             <input type="text" id="name" name="name" required>
         </div>
         <button type="submit" class="submit-btn">Создать</button>
-        <a href="{{ url_for('groups') }}" class="cancel-btn">Отмена</a>
+        <a href="{{ url_for('groups.list_groups') }}" class="cancel-btn">Отмена</a>
     </form>
 </body>
 {% endblock %}

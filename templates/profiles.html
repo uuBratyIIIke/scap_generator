@@ -3,7 +3,7 @@
 {% block content %}
 <h1>Профили</h1>
 
-<a href="{{ url_for('add_profile') }}" class="export-button">
+<a href="{{ url_for('profiles.add_profile') }}" class="export-button">
     <i class="fas fa-plus">Добавить профиль</i>
 </a>
 <table class="parameters-table">
@@ -52,8 +52,8 @@
                 </div>
             </td>
             <td>
-                <a href="{{ url_for('edit_profile', id=profile.id) }}" class="btn btn-sm btn-warning">✏️</a>
-                <a href="{{ url_for('delete_profile', id=profile.id) }}" class="btn btn-sm btn-danger"
+                <a href="{{ url_for('profiles.edit_profile', id=profile.id) }}" class="btn btn-sm btn-warning">✏️</a>
+                <a href="{{ url_for('profiles.delete_profile', id=profile.id) }}" class="btn btn-sm btn-danger"
                    onclick="return confirm('Удалить профиль?');">❌</a>
             </td>
         </tr>
@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 .filter(cb => cb.checked)
                 .map(cb => parseInt(cb.value));
 
-            fetch('{{ url_for("update_profile_groups") }}', {
+            fetch('{{ url_for("profiles.update_profile_groups") }}', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
