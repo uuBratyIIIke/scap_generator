@@ -94,8 +94,8 @@ def change_parameter_group_ajax():
 
 @parameters_bp.route('/download_template')
 def download_template():
-    csv_data = "name,value,description,group\n"
-    csv_data += "timeout,30,Таймаут соединения,Network\n"
+    csv_data = "name,value,description,group_id,comment,title,operation\n"
+    csv_data += "1,ssl,on,Включить SSL ,2,Ensure that SSL is enabled for encrypted connections.,Enable SSL,pattern match\n"
     response = make_response(csv_data)
     response.headers['Content-Disposition'] = 'attachment; filename=parameters_template.csv'
     response.headers['Content-type'] = 'text/csv'

@@ -3,115 +3,84 @@
 {% block content %}
 <h1>Профили</h1>
 
-<a href="{{ url_for('profiles.add_profile') }}" class="export-button">
-    <i class="fas fa-plus">Добавить профиль</i>
-</a>
-<table class="parameters-table">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Имя</th>
-            <th>Описание</th>
-            <th>Выбрано</th>
-            <th>Уровень важности</th>
-            <th>Группы</th>
-            <th>Действия</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for profile in profiles %}
-        <tr data-profile-id="{{ profile.id }}">
-            <td>{{ profile.id }}</td>
-            <td>{{ profile.name }}</td>
-            <td>{{ profile.description or '' }}</td>
-            <td>{{ profile.is_selected }}</td>
-            <td>{{ profile.severity }}</td>
-            <td>
-                <div class="dropdown">
-                    <button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button"
-                            data-bs-toggle="dropdown" aria-expanded="false">
-                        {{ profile.groups|map(attribute='name')|join(', ') or 'Выбрать группы' }}
-                    </button>
-                    <form class="dropdown-menu p-2 group-form" style="min-width: 220px; max-height: 260px; overflow-y: auto;">
-                        {% for group in groups %}
-                        <div class="form-check">
-                            <input class="form-check-input group-checkbox"
-                                   type="checkbox"
-                                   value="{{ group.id }}"
-                                   id="group-{{ profile.id }}-{{ group.id }}"
-                                   {% if group in profile.groups %}checked{% endif %}>
-                            <label class="form-check-label" for="group-{{ profile.id }}-{{ group.id }}">
-                                {{ group.name }}
-                            </label>
-                        </div>
-                        {% endfor %}
-                        <div class="d-grid mt-2">
-                            <button type="submit" class="btn btn-success btn-sm save-groups-btn">Сохранить</button>
-                        </div>
-                    </form>
-                </div>
-            </td>
-            <td>
-                <a href="{{ url_for('profiles.edit_profile', id=profile.id) }}" class="btn btn-sm btn-warning">✏️</a>
-                <a href="{{ url_for('profiles.delete_profile', id=profile.id) }}" class="btn btn-sm btn-danger"
-                   onclick="return confirm('Удалить профиль?');">❌</a>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+<form id="exportProfilesForm" method="POST" action="{{ url_for('profiles.export_profiles') }}">
+    <div class="d-flex justify-content-between mb-3">
+        <a href="{{ url_for('profiles.add_profile') }}" class="btn btn-success">
+            <i class="fas fa-plus"></i> Добавить профиль
+        </a>
+        <button type="submit" class="btn btn-primary" id="exportProfilesBtn">
+            <i class="fas fa-download"></i> Экспорт выбранных (<span id="selectedProfilesCount">0</span>)
+        </button>
+    </div>
+    <table class="parameters-table">
+        <thead>
+            <tr>
+                <th style="width:40px; text-align:center;">
+                    <input type="checkbox" id="selectAllProfiles" title="Выбрать всё">
+                </th>
+                <th>ID</th>
+                <th>Имя</th>
+                <th>Описание</th>
+                <th>Выбрано</th>
+                <th>Уровень важности</th>
+                <th>Группы</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for profile in profiles %}
+            <tr>
+                <td style="text-align:center;">
+                    <input type="checkbox" name="selected_profile_ids" value="{{ profile.id }}" class="profile-checkbox">
+                </td>
+                <td>{{ profile.id }}</td>
+                <td>{{ profile.name }}</td>
+                <td>{{ profile.description or '' }}</td>
+                <td>{{ profile.is_selected }}</td>
+                <td>{{ profile.severity }}</td>
+                <td>
+                    {{ profile.groups|map(attribute='name')|join(', ') or '—' }}
+                </td>
+                <td>
+                    <a href="{{ url_for('profiles.edit_profile', id=profile.id) }}" class="btn btn-sm btn-warning">✏️</a>
+                    <a href="{{ url_for('profiles.delete_profile', id=profile.id) }}" class="btn btn-sm btn-danger"
+                       onclick="return confirm('Удалить профиль?');">❌</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</form>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('tr[data-profile-id]').forEach(function(row) {
-        const profileId = row.getAttribute('data-profile-id');
-        const dropdownBtn = row.querySelector('.dropdown-toggle');
-        const groupForm = row.querySelector('.group-form');
-        const checkboxes = groupForm.querySelectorAll('.group-checkbox');
+    const selectAll = document.getElementById('selectAllProfiles');
+    const checkboxes = document.querySelectorAll('.profile-checkbox');
+    const countSpan = document.getElementById('selectedProfilesCount');
+    const exportBtn = document.getElementById('exportProfilesBtn');
 
-        groupForm.addEventListener('submit', function(e) {
+    function updateCount() {
+        const count = document.querySelectorAll('.profile-checkbox:checked').length;
+        countSpan.textContent = count;
+        selectAll.checked = count === checkboxes.length && checkboxes.length > 0;
+        selectAll.indeterminate = count > 0 && count < checkboxes.length;
+        exportBtn.disabled = count === 0;
+    }
+
+    selectAll.addEventListener('change', function() {
+        const checked = this.checked;
+        checkboxes.forEach(cb => cb.checked = checked);
+        updateCount();
+    });
+
+    checkboxes.forEach(cb => cb.addEventListener('change', updateCount));
+    updateCount();
+
+    document.getElementById('exportProfilesForm').addEventListener('submit', function(e) {
+        if (document.querySelectorAll('.profile-checkbox:checked').length === 0) {
             e.preventDefault();
-
-            // Собираем выбранные группы
-            const selectedGroupIds = Array.from(checkboxes)
-                .filter(cb => cb.checked)
-                .map(cb => parseInt(cb.value));
-
-            fetch('{{ url_for("profiles.update_profile_groups") }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    profile_id: profileId,
-                    group_ids: selectedGroupIds
-                })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Ошибка HTTP ' + response.status);
-                }
-                return response.json();
-            })
-            .then(data => {
-                if (!data.success) {
-                    alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
-                } else {
-                    // Обновляем текст на кнопке dropdown
-                    const selectedNames = Array.from(checkboxes)
-                        .filter(cb => cb.checked)
-                        .map(cb => cb.parentElement.textContent.trim());
-                    dropdownBtn.textContent = selectedNames.length > 0 ? selectedNames.join(', ') : 'Выбрать группы';
-
-                    // Закрываем dropdown (Bootstrap 5)
-                    const dropdown = bootstrap.Dropdown.getOrCreateInstance(dropdownBtn);
-                    dropdown.hide();
-                }
-            })
-            .catch(error => {
-                alert('Ошибка при обновлении групп: ' + error);
-            });
-        });
+            alert('Выберите хотя бы один профиль для экспорта!');
+        }
     });
 });
 </script>

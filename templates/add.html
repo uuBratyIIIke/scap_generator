@@ -62,8 +62,8 @@
                 <label for="csv_file">CSV файл:</label>
                 <input type="file" id="csv_file" name="csv_file" accept=".csv" required>
                 <p class="hint">
-                    Формат CSV: name,value,description,group<br>
-                    <a href="{{ url_for('download_template') }}">Скачать шаблон</a>
+                    Формат CSV: name,value,description,group_id,comment,title,operation<br>
+                    <a href="{{ url_for('parameters.download_template') }}">Скачать шаблон</a>
                 </p>
             </div>
             
