@@ -50,6 +50,7 @@ class Profile(db.Model):
     description = db.Column(db.String)
     is_selected = db.Column(db.Boolean)
     severity = db.Column(db.String(64))
+    title = db.Column(db.String(255), nullable=True)
     content_href = db.Column(db.String(512))
     groups = db.relationship(
         'Group',
